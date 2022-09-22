@@ -1,9 +1,11 @@
-import React from 'react'
+import Board from "./board/board"
 
 function App() {
   return (
-    <div>App</div>
-  )
+    <div>
+      <Board />
+    </div>
+  );
 }
 
-export default App
+export default App;

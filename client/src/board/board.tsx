@@ -6,7 +6,7 @@ export default function Board() {
   const api = "/api/engineEvaluation/";
 
   const [game, setGame] = useState(new Chess());
-  const [eval, setEval] = 0;
+  const [evaluation, setEvaluation] = useState(0);
 
   function makeMove(move: any) {
     const gameCopy: Chess = new Chess(game.fen());
@@ -31,13 +31,21 @@ export default function Board() {
 
     if (move === null) return false;
 
+    const fen = game.fen().replaceAll('/', "%5C");
+    console.log(fen);
+    fetch(`${api}${fen}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setEvaluation(data["evaluation"])
+      });
+
     return true;
   }
 
   return (
     <div>
       <Chessboard position={game.fen()} onPieceDrop={onDrop} />
-      <div>{eval}</div>
+      <div>{evaluation}</div>
     </div>
   );
 }

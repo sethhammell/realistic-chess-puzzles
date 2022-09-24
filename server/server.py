@@ -1,15 +1,16 @@
-from flask import Flask
 import asyncio
-from engine import evaluation
+from flask import Flask
+from evaluate import evaluation
 
 app = Flask(__name__)
 
 
 @app.route("/api/engineEvaluation/<encodedFen>")
 async def engineEvaluation(encodedFen):
-
-    move = await asyncio.run(evaluation())
-    return {"evaluation": 2}
+    fen = encodedFen.replace('\\', '/')
+    analysis = await evaluation(fen)
+    print(analysis)
+    return analysis
 
 
 if __name__ == "__main__":

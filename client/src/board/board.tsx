@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
 
@@ -31,6 +31,10 @@ export default function Board() {
 
     if (move === null) return false;
 
+    return true;
+  }
+
+  function updateEvaluation() {
     const fen = game.fen().replaceAll('/', "%5C");
     console.log(fen);
     fetch(`${api}${fen}`)
@@ -38,9 +42,11 @@ export default function Board() {
       .then((data) => {
         setEvaluation(data["evaluation"])
       });
-
-    return true;
   }
+
+  useEffect(() => {
+    updateEvaluation();
+  }, [game])
 
   return (
     <div>

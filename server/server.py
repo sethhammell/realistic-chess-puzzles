@@ -1,10 +1,14 @@
 from flask import Flask
+import asyncio
+from engine import evaluation
 
 app = Flask(__name__)
 
 
 @app.route("/api/engineEvaluation/<encodedFen>")
-def engineEvaluation(encodedFen):
+async def engineEvaluation(encodedFen):
+
+    move = await asyncio.run(evaluation())
     return {"evaluation": 2}
 
 

@@ -8,5 +8,17 @@ async def evaluation(fen):
     board = chess.Board(fen)
     analysis = await engine.analyse(board, chess.engine.Limit(time=1))
 
+    moves = []
+    print(analysis)
+    if "pv" in analysis:
+        moves = list(map(lambda m: m.uci(), analysis["pv"]))
+    score = analysis["score"].white()
+
     await engine.quit()
-    return {"evaluation": analysis["score"].white().score(), "moves": analysis["pv"]}
+
+    if score.is_mate():
+        score = '#' + str(score.mate())
+    else:
+        score = score.score()
+    
+    return {"evaluation": score, "moves": moves}

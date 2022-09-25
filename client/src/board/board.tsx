@@ -1,19 +1,34 @@
 import { useEffect, useState } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
+import { Result } from "../enums/result";
 
 export default function Board() {
   const apiEngine = "/api/engineEvaluation/";
   const apiDatabase = "/api/database";
 
   const [game, setGame] = useState(new Chess());
-  const [evaluation, setEvaluation] = useState(0);
+  const [prevGame, setPrevGame] = useState(new Chess());
+  const [evaluation, setEvaluation] = useState({ evaluation: 0, moves: "" });
+  const [solution, setSolution] = useState({ evaluation: 0, moves: "" });
   const [moveFilter, setMoveFilter] = useState("");
   const [ratingRange, setRatingRange] = useState([0, 4000]);
+  const [result, setResult] = useState(Result.INPROGRESS);
+  const [isNewPosition, setIsNewPosition] = useState(true);
+  const [lastMove, setLastMove] = useState("");
+
+  const moveMessage = () =>
+    "Find the best move for " + (game.turn() === "w" ? "white" : "black");
+
+  const resultMessage = () =>
+    result === Result.SUCCESS
+      ? "Success!"
+      : "That's not right, try something else.";
 
   function makeMove(move: any) {
     const gameCopy: Chess = new Chess(game.fen());
     const result = gameCopy.move(move);
+    setLastMove(move.from + move.to);
     setGame(gameCopy);
     return result;
   }
@@ -47,6 +62,8 @@ export default function Board() {
       .then((data) => {
         const newPosition: Chess = new Chess(data["fen"]);
         setGame(newPosition);
+        setIsNewPosition(true);
+        setResult(Result.INPROGRESS);
       });
   }
 
@@ -60,19 +77,39 @@ export default function Board() {
     fetch(`${apiEngine}${fen}`)
       .then((res) => res.json())
       .then((data) => {
-        setEvaluation(data["evaluation"]);
+        console.log(isNewPosition, lastMove);
+        if (isNewPosition) {
+          setSolution({ evaluation: data["evaluation"], moves: data["moves"] });
+          setIsNewPosition(false);
+        } else if (lastMove !== "") {
+          console.log(lastMove, solution.moves[0])
+          lastMove === solution.moves[0]
+            ? setResult(Result.SUCCESS)
+            : setResult(Result.FAILURE);
+        }
+        setEvaluation({ evaluation: data["evaluation"], moves: data["moves"] });
       });
   }
 
   useEffect(() => {
-    updateEvaluation();
+    if (game.fen() !== prevGame.fen()) {
+      updateEvaluation();
+      setPrevGame(game);
+    }
   }, [game]);
 
   return (
     <div>
-      <div>Find the best move for {game.turn() == 'w' ? "white" : "black"}</div>
+      <div>
+        {result === Result.INPROGRESS ? moveMessage() : resultMessage()}
+      </div>
       <Chessboard position={game.fen()} onPieceDrop={onDrop} />
-      <div>{evaluation}</div>
+      {result !== Result.INPROGRESS && (
+        <div>
+          <div>Best move: {solution.evaluation}</div>
+          <div>Your move: {evaluation.evaluation}</div>
+        </div>
+      )}
     </div>
   );
 }

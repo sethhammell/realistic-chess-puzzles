@@ -8,7 +8,7 @@ from pymongo import MongoClient
 config_path = r"config.yaml"
 
 
-def randomFen(moveFilter, ratingRange):
+def randomFen(moveFilter = "", ratingRange = [0, 4000]):
     with open(config_path, 'r') as stream:
         config = yaml.safe_load(stream)
 
@@ -20,7 +20,7 @@ def randomFen(moveFilter, ratingRange):
     database = client[db_name]
     cluster = database[cluster_name]
     game_data = list(cluster.aggregate(
-        [{"$match": {"moves": {"$regex": '1. e4 e6 '}}}, {"$sample": {"size": 1}}]))[0]
+        [{"$match": {"moves": {"$regex": moveFilter}}}, {"$sample": {"size": 1}}]))[0]
 
     moves = game_data["moves"].split(' ')
 
@@ -44,7 +44,7 @@ def randomFen(moveFilter, ratingRange):
     return game.end().board().fen()
 
 
-def gameQuantity(moves, ratingRange):
+def gameQuantity(moveFilter = "", ratingRange = [0, 4000]):
     with open(config_path, 'r') as stream:
         config = yaml.safe_load(stream)
 
@@ -55,5 +55,5 @@ def gameQuantity(moves, ratingRange):
     client = MongoClient(atlas_uri)
     database = client[db_name]
     cluster = database[cluster_name]
-    size = list(cluster.find({"moves": {"$regex": '1. e4 e6 '}}))
+    size = list(cluster.find({"moves": {"$regex": moveFilter}}))
     return len(size)

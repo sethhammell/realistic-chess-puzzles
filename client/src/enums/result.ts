@@ -1,5 +1,6 @@
 export enum Result {
-    INPROGRESS,
+    IN_PROGRESS,
     SUCCESS,
+    PARTIAL_SUCCESS,
     FAILURE
 }

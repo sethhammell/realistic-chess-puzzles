@@ -3,13 +3,13 @@ import chess.engine
 
 engine_path = r"engine\stockfish_15_x64_avx2.exe"
 
-async def evaluation(fen):
+async def evaluation(fen, time=1):
     _transport, engine = await chess.engine.popen_uci(engine_path)
     board = chess.Board(fen)
-    analysis = await engine.analyse(board, chess.engine.Limit(time=1))
+    analysis = await engine.analyse(board, chess.engine.Limit(time))
 
     moves = []
-    print(analysis)
+    # print(analysis)
     if "pv" in analysis:
         moves = list(map(lambda m: m.uci(), analysis["pv"]))
     score = analysis["score"].white()

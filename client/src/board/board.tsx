@@ -19,7 +19,7 @@ export default function Board() {
     evaluation: 0,
     moves: "",
   });
-  const [moveFilter, setMoveFilter] = useState("");
+  const [moveFilter, setMoveFilter] = useState("1. e4 e6 2. d4 d5");
   const [ratingRange, setRatingRange] = useState([0, 4000]);
   const [result, setResult] = useState(Result.IN_PROGRESS);
   const [isNewPosition, setIsNewPosition] = useState(true);
@@ -120,15 +120,15 @@ export default function Board() {
             }
           } else if (
             (prevGame.turn() === 'b' &&
-              solution.evaluation >= (data["evaluation"] as number) - 1) ||
+              solution.evaluation >= (data["evaluation"] as number) - 100) ||
             (prevGame.turn() === 'w' &&
-              solution.evaluation <= (data["evaluation"] as number) + 1)
+              solution.evaluation <= (data["evaluation"] as number) + 100)
           ) {
-            console.log(prevGame.turn(), solution.evaluation, ((data["evaluation"] as number) - 1), ((data["evaluation"] as number) + 1));
+            console.log(prevGame.turn(), solution.evaluation, ((data["evaluation"] as number) - 100), ((data["evaluation"] as number) + 100));
             console.log("hi6");
             setResult(Result.PARTIAL_SUCCESS);
           } else {
-            console.log(prevGame.turn(), solution.evaluation, ((data["evaluation"] as number) - 1), ((data["evaluation"] as number) + 1));
+            console.log(prevGame.turn(), solution.evaluation, ((data["evaluation"] as number) - 100), ((data["evaluation"] as number) + 100));
             console.log("hi7");
             setResult(Result.FAILURE);
           }

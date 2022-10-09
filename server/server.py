@@ -1,7 +1,6 @@
-import asyncio
 from flask import Flask, request
-from evaluate import evaluation
 from mongoContext import randomFen, gameQuantity
+from evaluate import evaluation
 
 app = Flask(__name__)
 
@@ -19,7 +18,8 @@ async def getRandomFen():
     ratingRange = request.args.get('ratingRange')
     print(moveFilter)
     print(ratingRange)
-    return {"fen": randomFen(moveFilter, ratingRange)}
+    fen = await randomFen(moveFilter, ratingRange)
+    return {"fen": fen}
 
 
 @app.route("/api/database/gameQuantity", methods=["GET"])

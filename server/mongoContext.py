@@ -89,7 +89,7 @@ async def randomFen(moveFilter="", ratingRange=[0, 4000]):
                 else:
                     mate_for_white = True
         print(turn, turn == chess.WHITE, turn == chess.BLACK, score, eval, fen)
-    return fen
+    return {"fen": fen, "next_move": None, "url": game_data["url"] + '/#' + str(startMove)}
 
 
 def gameQuantity(moveFilter="", ratingRange=[0, 4000]):

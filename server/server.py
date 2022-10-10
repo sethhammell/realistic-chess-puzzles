@@ -18,8 +18,8 @@ async def getRandomFen():
     ratingRange = request.args.get('ratingRange')
     print(moveFilter)
     print(ratingRange)
-    fen = await randomFen(moveFilter, ratingRange)
-    return {"fen": fen}
+    fen_data = await randomFen(moveFilter, ratingRange)
+    return fen_data
 
 
 @app.route("/api/database/gameQuantity", methods=["GET"])

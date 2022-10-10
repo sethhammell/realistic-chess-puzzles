@@ -4,6 +4,7 @@ import { Chessboard } from "react-chessboard";
 import { Result } from "../enums/result";
 import Button from "@mui/material/Button";
 import { Evaluation } from "../types/evaluation";
+import "./board.css";
 
 export default function Board() {
   const apiEngine = "/api/engineEvaluation/";
@@ -24,6 +25,7 @@ export default function Board() {
   const [result, setResult] = useState(Result.IN_PROGRESS);
   const [isNewPosition, setIsNewPosition] = useState(true);
   const [lastMove, setLastMove] = useState("");
+  const [url, setUrl] = useState("");
 
   const moveMessage = () =>
     "Find the best move for " + (game.turn() === "w" ? "white" : "black");
@@ -75,6 +77,7 @@ export default function Board() {
         setIsNewPosition(true);
         setLastMove("");
         setResult(Result.IN_PROGRESS);
+        setUrl(data["url"])
       });
   }
 
@@ -162,6 +165,14 @@ export default function Board() {
         onClick={newPosition}
       >
         Next Puzzle
+      </Button>
+      <Button
+        variant="contained"
+        disabled={result === Result.IN_PROGRESS}
+        href={url}
+        target="_blank"
+      >
+        Analyze on Lichess
       </Button>
     </div>
   );

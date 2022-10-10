@@ -4,6 +4,7 @@ import { Chessboard } from "react-chessboard";
 import { Result } from "../enums/result";
 import Button from "@mui/material/Button";
 import { Evaluation } from "../types/evaluation";
+import { highlightMove, undoHighlight } from "../helpers/highlightMove";
 import "./board.css";
 
 export default function Board() {
@@ -20,12 +21,15 @@ export default function Board() {
     evaluation: 0,
     moves: "",
   });
-  const [moveFilter, setMoveFilter] = useState("1. e4 e6 2. d4 d5");
-  const [ratingRange, setRatingRange] = useState([0, 4000]);
-  const [result, setResult] = useState(Result.IN_PROGRESS);
-  const [isNewPosition, setIsNewPosition] = useState(true);
-  const [lastMove, setLastMove] = useState("");
-  const [url, setUrl] = useState("");
+  const [moveFilter, setMoveFilter] = useState<string>("1. e4 e6 2. d4 d5");
+  const [ratingRange, setRatingRange] = useState<[number, number]>([0, 4000]);
+  const [result, setResult] = useState<Result>(Result.IN_PROGRESS);
+  const [isNewPosition, setIsNewPosition] = useState<boolean>(true);
+  const [lastMove, setLastMove] = useState<string>("");
+  const [lastMoveEls, setLastMoveEls] = useState<
+    null | [HTMLElement, HTMLElement]
+  >(null);
+  const [url, setUrl] = useState<string>("");
 
   const moveMessage = () =>
     "Find the best move for " + (game.turn() === "w" ? "white" : "black");
@@ -40,6 +44,7 @@ export default function Board() {
   function makeMove(move: any) {
     const gameCopy: Chess = new Chess(game.fen());
     const result = gameCopy.move(move);
+    setPrevGame(game);
     setLastMove(move.from + move.to);
     setGame(gameCopy);
     return result;
@@ -61,6 +66,9 @@ export default function Board() {
 
     if (move === null) return false;
 
+    undoHighlights();
+    highlightSquares(sourceSquare, targetSquare);
+
     return true;
   }
 
@@ -73,17 +81,44 @@ export default function Board() {
       .then((res) => res.json())
       .then((data) => {
         const newPosition: Chess = new Chess(data["fen"]);
-        setGame(newPosition);
-        setIsNewPosition(true);
-        setLastMove("");
+        initialize(newPosition);
         setResult(Result.IN_PROGRESS);
-        setUrl(data["url"])
+        setUrl(data["url"]);
       });
   }
 
   useEffect(() => {
     newPosition();
   }, []);
+
+  function highlightSquares(sourceSquare: string, targetSquare: string) {
+    const sourceSquareEl = document.querySelector(
+      `[data-square="${sourceSquare}"]`
+    ) as HTMLElement;
+    sourceSquareEl.style.backgroundColor = highlightMove(sourceSquare);
+
+    const targetSquareEl = document.querySelector(
+      `[data-square="${targetSquare}"]`
+    ) as HTMLElement;
+    targetSquareEl.style.backgroundColor = highlightMove(targetSquare);
+
+    setLastMoveEls([sourceSquareEl, targetSquareEl]);
+  }
+
+  function undoHighlights() {
+    console.log(lastMoveEls, lastMove);
+    if (lastMoveEls !== null && lastMove !== "") {
+      lastMoveEls[0].style.backgroundColor = undoHighlight(lastMove.substring(0, 2));
+      lastMoveEls[1].style.backgroundColor = undoHighlight(lastMove.substring(2, 4));
+    }
+  }
+
+  function initialize(newPosition: Chess) {
+    undoHighlights();
+    setGame(newPosition);
+    setIsNewPosition(true);
+    setLastMove("");
+  }
 
   function updateEvaluation() {
     const fen = game.fen().replaceAll("/", "%5C");
@@ -122,16 +157,26 @@ export default function Board() {
               }
             }
           } else if (
-            (prevGame.turn() === 'b' &&
+            (prevGame.turn() === "b" &&
               solution.evaluation >= (data["evaluation"] as number) - 100) ||
-            (prevGame.turn() === 'w' &&
+            (prevGame.turn() === "w" &&
               solution.evaluation <= (data["evaluation"] as number) + 100)
           ) {
-            console.log(prevGame.turn(), solution.evaluation, ((data["evaluation"] as number) - 100), ((data["evaluation"] as number) + 100));
+            console.log(
+              prevGame.turn(),
+              solution.evaluation,
+              (data["evaluation"] as number) - 100,
+              (data["evaluation"] as number) + 100
+            );
             console.log("hi6");
             setResult(Result.PARTIAL_SUCCESS);
           } else {
-            console.log(prevGame.turn(), solution.evaluation, ((data["evaluation"] as number) - 100), ((data["evaluation"] as number) + 100));
+            console.log(
+              prevGame.turn(),
+              solution.evaluation,
+              (data["evaluation"] as number) - 100,
+              (data["evaluation"] as number) + 100
+            );
             console.log("hi7");
             setResult(Result.FAILURE);
           }
@@ -141,9 +186,9 @@ export default function Board() {
   }
 
   useEffect(() => {
+    console.log("hi");
     if (game.fen() !== prevGame.fen()) {
       updateEvaluation();
-      setPrevGame(game);
     }
   }, [game]);
 
@@ -173,6 +218,13 @@ export default function Board() {
         target="_blank"
       >
         Analyze on Lichess
+      </Button>
+      <Button
+        variant="contained"
+        disabled={lastMove === ""}
+        onClick={() => initialize(prevGame)}
+      >
+        Retry
       </Button>
     </div>
   );

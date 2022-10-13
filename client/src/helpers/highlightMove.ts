@@ -13,9 +13,7 @@ export function undoHighlight(square: string): string {
 }
 
 function isBlack(square: string): boolean {
-	console.log(square)
 	const letter = square[0].charCodeAt(0) - 96;
 	const number = +square[1];
-	console.log(letter, number)
 	return letter % 2 === number % 2;
 }

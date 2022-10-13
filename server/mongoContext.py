@@ -1,19 +1,19 @@
 from math import ceil
 from evaluate import evaluation
+from pymongo import MongoClient
 import yaml
 import io
 import random
 import chess.pgn
-from pymongo import MongoClient
+
+# certain ply will always be a certain color, use this to generate position from only one side
 
 config_path = r"config.yaml"
 
 piece_values = dict(zip('pbnrqPBNRQ', [1, 3, 3, 5, 9]*2))
 losing_threshold = 300
 score_threshold = 5
-
-# random fen plus next move, so en passant is known
-
+min_move = 6
 
 async def randomFen(moveFilter="", ratingRange=[0, 4000]):
     with open(config_path, 'r') as stream:
@@ -53,22 +53,33 @@ async def randomFen(moveFilter="", ratingRange=[0, 4000]):
 
         # to account for 1/3 of moves being 1. 2. etc.
         maxMove = round(len(moves) * 2 / 3)
-        minMove = 0 if maxMove <= 8 else 8
+        minMove = 0 if maxMove <= min_move * 2 else min_move * 2
 
         # don't take positions before move 8 / 2 = 4
-        
         startMove = random.randint(minMove, maxMove)
         startingMoves = moves[:ceil(startMove * 1.5)]
+        fullPgnstring = ' '.join(m for m in startingMoves)
+        nextMove = startingMoves.pop()
+
+        lastChar = startingMoves[-1][-1]
+        if lastChar == '.':
+            startingMoves = startingMoves[:-1]
 
         if (len(startingMoves) % 3 != 0):
             startingMoves.append('*')
 
         startingPgn = io.StringIO(' '.join(m for m in startingMoves))
         game = chess.pgn.read_game(startingPgn)
-
-        print(startingMoves)
+        nextMove = game.end().board().parse_san(nextMove).uci()
+        nextMoveUci = { "sourceSquare": nextMove[:-2], "targetSquare": nextMove[2:] }
+        print("nextMoveUci:", nextMoveUci )
         fen = game.end().board().fen()
-        for c in reversed(fen):
+
+        fullPgn = io.StringIO(fullPgnstring)
+        fullGame = chess.pgn.read_game(fullPgn)
+        fullFen = fullGame.end().board().fen()
+
+        for c in reversed(fullFen):
             if c == 'w':
                 turn = chess.WHITE
                 break
@@ -76,10 +87,10 @@ async def randomFen(moveFilter="", ratingRange=[0, 4000]):
                 turn = chess.BLACK
                 break
 
-        score = sum(piece_values.get(c, 0)*(-1)**(c > 'Z')for c in fen)
+        score = sum(piece_values.get(c, 0)*(-1)**(c > 'Z')for c in fullFen)
 
         if not ((turn == chess.WHITE and score > 5) or (turn == chess.BLACK and score < -5)):
-            eval_result = await evaluation(fen, 0.1)
+            eval_result = await evaluation(fullFen, 0.1)
             eval = eval_result["evaluation"]
             mate_for_white = False
             mate_for_black = False
@@ -89,7 +100,7 @@ async def randomFen(moveFilter="", ratingRange=[0, 4000]):
                 else:
                     mate_for_white = True
         print(turn, turn == chess.WHITE, turn == chess.BLACK, score, eval, fen)
-    return {"fen": fen, "next_move": None, "url": game_data["url"] + '/#' + str(startMove)}
+    return {"fen": fen, "nextMove": nextMoveUci, "url": game_data["url"] + '/#' + str(startMove)}
 
 
 def gameQuantity(moveFilter="", ratingRange=[0, 4000]):

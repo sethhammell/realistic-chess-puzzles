@@ -11,8 +11,8 @@ export default function Board() {
   const apiEngine = "/api/engineEvaluation/";
   const apiDatabase = "/api/database";
 
-  const [game, setGame] = useState(new Chess());
-  const [prevGame, setPrevGame] = useState(new Chess());
+  const [game, setGame] = useState<Chess>(new Chess());
+  const [originalPosition, setOriginalPosition] = useState<string>("");
   const [evaluation, setEvaluation] = useState<Evaluation>({
     evaluation: 0,
     moves: "",
@@ -30,9 +30,14 @@ export default function Board() {
     null | [HTMLElement, HTMLElement]
   >(null);
   const [url, setUrl] = useState<string>("");
+  const [nextMove, setNextMove] = useState<{
+    sourceSquare: string;
+    targetSquare: string;
+  }>({ sourceSquare: "", targetSquare: "" });
+  const [turn, setTurn] = useState<string>("");
 
   const moveMessage = () =>
-    "Find the best move for " + (game.turn() === "w" ? "white" : "black");
+    "Find the best move for " + (turn === "w" ? "white" : "black");
 
   const resultMessage = () =>
     result === Result.SUCCESS
@@ -44,13 +49,12 @@ export default function Board() {
   function makeMove(move: any) {
     const gameCopy: Chess = new Chess(game.fen());
     const result = gameCopy.move(move);
-    setPrevGame(game);
     setLastMove(move.from + move.to);
     setGame(gameCopy);
     return result;
   }
 
-  function onDrop(sourceSquare: string, targetSquare: string) {
+  function processMove(sourceSquare: string, targetSquare: string) {
     let move = makeMove({
       from: sourceSquare,
       to: targetSquare,
@@ -73,16 +77,16 @@ export default function Board() {
   }
 
   function newPosition() {
-    const fen = game.fen().replaceAll("/", "%5C");
-    console.log(fen);
     fetch(
       `${apiDatabase}/randomFen?moveFilter=${moveFilter}&ratingRange=${ratingRange}`
     )
       .then((res) => res.json())
       .then((data) => {
-        const newPosition: Chess = new Chess(data["fen"]);
+        const newPosition: string = data["fen"];
+        setTurn(new Chess(newPosition).turn() === "w" ? "b" : "w");
+        setNextMove(data["nextMove"]);
+        setOriginalPosition(data["fen"]);
         initialize(newPosition);
-        setResult(Result.IN_PROGRESS);
         setUrl(data["url"]);
       });
   }
@@ -106,42 +110,45 @@ export default function Board() {
   }
 
   function undoHighlights() {
-    console.log(lastMoveEls, lastMove);
     if (lastMoveEls !== null && lastMove !== "") {
-      lastMoveEls[0].style.backgroundColor = undoHighlight(lastMove.substring(0, 2));
-      lastMoveEls[1].style.backgroundColor = undoHighlight(lastMove.substring(2, 4));
+      lastMoveEls[0].style.backgroundColor = undoHighlight(
+        lastMove.substring(0, 2)
+      );
+      lastMoveEls[1].style.backgroundColor = undoHighlight(
+        lastMove.substring(2, 4)
+      );
     }
   }
 
-  function initialize(newPosition: Chess) {
+  function initialize(newPosition: string) {
     undoHighlights();
-    setGame(newPosition);
+    const gameCopy: Chess = new Chess(newPosition);
+    setGame(gameCopy);
     setIsNewPosition(true);
     setLastMove("");
+    setResult(Result.IN_PROGRESS);
+  }
+
+  function retry() {
+    initialize(originalPosition);
   }
 
   function updateEvaluation() {
     const fen = game.fen().replaceAll("/", "%5C");
-    console.log(fen);
     fetch(`${apiEngine}${fen}`)
       .then((res) => res.json())
       .then((data) => {
-        console.log(isNewPosition, lastMove);
         if (isNewPosition) {
           setSolution({ evaluation: data["evaluation"], moves: data["moves"] });
           setIsNewPosition(false);
         } else if (lastMove !== "") {
-          console.log(lastMove, solution.moves[0]);
           if (lastMove === solution.moves[0]) {
-            console.log("hi1");
             setResult(Result.SUCCESS);
           } else if ((solution.evaluation as string)[0] === "#") {
             if ((solution.evaluation as string)[1] === "-") {
               if ((data["evaluation"] as string).substring(0, 2) === "#-") {
-                console.log("hi2");
                 setResult(Result.PARTIAL_SUCCESS);
               } else {
-                console.log("hi3");
                 setResult(Result.FAILURE);
               }
             } else {
@@ -149,35 +156,19 @@ export default function Board() {
                 (data["evaluation"] as string)[0] === "#" &&
                 (data["evaluation"] as string)[0] !== "-"
               ) {
-                console.log("hi4");
                 setResult(Result.PARTIAL_SUCCESS);
               } else {
-                console.log("hi5");
                 setResult(Result.FAILURE);
               }
             }
           } else if (
-            (prevGame.turn() === "b" &&
+            (turn === "b" &&
               solution.evaluation >= (data["evaluation"] as number) - 100) ||
-            (prevGame.turn() === "w" &&
+            (turn === "w" &&
               solution.evaluation <= (data["evaluation"] as number) + 100)
           ) {
-            console.log(
-              prevGame.turn(),
-              solution.evaluation,
-              (data["evaluation"] as number) - 100,
-              (data["evaluation"] as number) + 100
-            );
-            console.log("hi6");
             setResult(Result.PARTIAL_SUCCESS);
           } else {
-            console.log(
-              prevGame.turn(),
-              solution.evaluation,
-              (data["evaluation"] as number) - 100,
-              (data["evaluation"] as number) + 100
-            );
-            console.log("hi7");
             setResult(Result.FAILURE);
           }
         }
@@ -186,8 +177,12 @@ export default function Board() {
   }
 
   useEffect(() => {
-    console.log("hi");
-    if (game.fen() !== prevGame.fen()) {
+    if (game.fen() === originalPosition) {
+      setTimeout(() => {
+        processMove(nextMove["sourceSquare"], nextMove["targetSquare"]);
+      }, 500);
+    }
+    else if (originalPosition !== '') {
       updateEvaluation();
     }
   }, [game]);
@@ -197,7 +192,12 @@ export default function Board() {
       <div>
         {result === Result.IN_PROGRESS ? moveMessage() : resultMessage()}
       </div>
-      <Chessboard position={game.fen()} onPieceDrop={onDrop} />
+      <Chessboard
+        position={game.fen()}
+        onPieceDrop={processMove}
+        arePiecesDraggable={result === Result.IN_PROGRESS}
+        boardOrientation={turn === "w" ? "white" : "black"}
+      />
       {result !== Result.IN_PROGRESS && (
         <div>
           <div>Best move: {solution.evaluation}</div>
@@ -221,8 +221,10 @@ export default function Board() {
       </Button>
       <Button
         variant="contained"
-        disabled={lastMove === ""}
-        onClick={() => initialize(prevGame)}
+        disabled={
+          !(result === Result.FAILURE || result === Result.PARTIAL_SUCCESS)
+        }
+        onClick={() => retry()}
       >
         Retry
       </Button>

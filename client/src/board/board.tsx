@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import { Result } from "../enums/result";
-import Button from "@mui/material/Button";
 import { Evaluation } from "../types/evaluation";
 import { highlightMove, undoHighlight } from "../helpers/highlightMove";
+import Button from "@mui/material/Button";
 import "./board.css";
+import { Checkbox } from "@mui/material";
 
 export default function Board() {
   const apiEngine = "/api/engineEvaluation/";
@@ -35,6 +36,7 @@ export default function Board() {
     targetSquare: string;
   }>({ sourceSquare: "", targetSquare: "" });
   const [turn, setTurn] = useState<string>("");
+  const [userGames, setUserGames] = useState<boolean>(false);
 
   const moveMessage = () =>
     "Find the best move for " + (turn === "w" ? "white" : "black");
@@ -197,6 +199,7 @@ export default function Board() {
         onPieceDrop={processMove}
         arePiecesDraggable={result === Result.IN_PROGRESS}
         boardOrientation={turn === "w" ? "white" : "black"}
+        snapToCursor={true}
       />
       {result !== Result.IN_PROGRESS && (
         <div>
@@ -228,6 +231,7 @@ export default function Board() {
       >
         Retry
       </Button>
+      <Checkbox checked={userGames} onChange={() => setUserGames(!userGames)} />
     </div>
   );
 }

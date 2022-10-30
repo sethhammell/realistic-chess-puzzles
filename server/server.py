@@ -16,8 +16,6 @@ async def getEngineEvaluation(encodedFen):
 async def getRandomFen():
     moveFilter = request.args.get('moveFilter')
     ratingRange = request.args.get('ratingRange')
-    print(moveFilter)
-    print(ratingRange)
     fen_data = await randomFen(moveFilter, ratingRange)
     return fen_data
 

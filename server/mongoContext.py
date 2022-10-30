@@ -72,7 +72,6 @@ async def randomFen(moveFilter="", ratingRange=[0, 4000]):
         game = chess.pgn.read_game(startingPgn)
         nextMove = game.end().board().parse_san(nextMove).uci()
         nextMoveUci = { "sourceSquare": nextMove[:-2], "targetSquare": nextMove[2:] }
-        print("nextMoveUci:", nextMoveUci )
         fen = game.end().board().fen()
 
         fullPgn = io.StringIO(fullPgnstring)

@@ -1,20 +1,17 @@
 import yaml
 from pymongo import MongoClient
 
-pgn_path = r"pgns\lichess_db_standard_rated_2013-01.pgn"
+# pgn_path = r"pgns\lichess_db_standard_rated_2013-01.pgn"
 # pgn_path = r"pgns\lichess_db_standard_rated_2017-02.pgn"
-# pgn_path = r"pgns\test.pgn"
+pgn_path = r"pgns\test.pgn"
 config_path = r"config.yaml"
 
-### when linking to lichess game, you can put #50 to make link jump to ply 50 ###
 ### could use bigger file and just keep counter of 1 million so database
 # can be perfectly filled (don't increment if game is skipped)
 
-def loadDB():
-    f = open(pgn_path)
-    pgn_text = f.readlines()
-    f.close()
+# https://lichess.org/api/games/user/Helix487?max=100&pgnInJson=true
 
+def parsePgns(pgn_text, includePlayers = False):
     pgns = []
     whiteElo = 0
     curr = {}
@@ -23,6 +20,12 @@ def loadDB():
         match s[0]:
             case "[Site":
                 curr["url"] = s[1][1:-3]
+            case "[White":
+                if includePlayers:
+                    curr["white"] = s[1][1:-3]
+            case "[Black":
+                if includePlayers:
+                    curr["black"] = s[1][1:-3]
             case "[WhiteElo":
                 if s[1][1:-3] == '?':
                     whiteElo = s[1][1:-3]
@@ -55,6 +58,14 @@ def loadDB():
                 # else:
                 #     print(totalMoves, curr["avgElo"] != '?', curr["url"], curr["avgElo"], curr["opening"], curr["moves"])
                 curr = {}
+    return pgns
+
+def loadDB():
+    f = open(pgn_path)
+    pgn_text = f.readlines()
+    f.close()
+
+    pgns = parsePgns(pgn_text)
 
     # for p in pgns:
     #     print(p["url"], p["avgElo"], p["opening"], p["moves"])
@@ -106,6 +117,6 @@ def searchDB():
     # for game in games:
     #     print(game["opening"])
 
-loadDB()
+# loadDB()
 # clearDB()
 # searchDB()

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import { Result } from "../enums/result";
-import { Evaluation } from "../types/evaluation";
+import { Evaluation, FenData, MoveUci } from "../types/chess";
 import { highlightMove, undoHighlight } from "../helpers/highlightMove";
 import Button from "@mui/material/Button";
 import "./board.css";
@@ -11,6 +11,7 @@ import { Checkbox } from "@mui/material";
 export default function Board() {
   const apiEngine = "/api/engineEvaluation/";
   const apiDatabase = "/api/database";
+  const apiLichess = "/api/lichess";
 
   const [game, setGame] = useState<Chess>(new Chess());
   const [originalPosition, setOriginalPosition] = useState<string>("");
@@ -31,12 +32,17 @@ export default function Board() {
     null | [HTMLElement, HTMLElement]
   >(null);
   const [url, setUrl] = useState<string>("");
-  const [nextMove, setNextMove] = useState<{
-    sourceSquare: string;
-    targetSquare: string;
-  }>({ sourceSquare: "", targetSquare: "" });
+  const [nextMove, setNextMove] = useState<MoveUci>({
+    sourceSquare: "",
+    targetSquare: "",
+  });
+  const [movePlayed, setMovePlayed] = useState<string>("");
   const [turn, setTurn] = useState<string>("");
   const [userGames, setUserGames] = useState<boolean>(false);
+  const [userName, setUserName] = useState<string>("Helix487");
+  const [redoFens, setRedoFens] = useState<FenData[]>([]);
+  const [mostRecentGames, setMostRecentGames] = useState<number>(20);
+  const [didRetry, setDidRetry] = useState<boolean>(false);
 
   const moveMessage = () =>
     "Find the best move for " + (turn === "w" ? "white" : "black");
@@ -78,24 +84,50 @@ export default function Board() {
     return true;
   }
 
-  function newPosition() {
-    fetch(
-      `${apiDatabase}/randomFen?moveFilter=${moveFilter}&ratingRange=${ratingRange}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        const newPosition: string = data["fen"];
-        setTurn(new Chess(newPosition).turn() === "w" ? "b" : "w");
-        setNextMove(data["nextMove"]);
-        setOriginalPosition(data["fen"]);
-        initialize(newPosition);
-        setUrl(data["url"]);
-      });
+  async function newPosition() {
+    let fenData!: FenData;
+    if (userGames) {
+      console.log(redoFens.length);
+      if (!redoFens.length) {
+        await fetch(
+          `${apiLichess}/randomLichessGame?user=${userName}&max=${mostRecentGames}`
+        )
+          .then((res) => res.json())
+          .then((data) => {
+            setRedoFens(data["redoFens"].slice(1));
+            fenData = data["redoFens"][0];
+            console.log(data["redoFens"]);
+          });
+      }
+      console.log(redoFens);
+      if (!!redoFens && redoFens.length) {
+        fenData = redoFens[0];
+        setRedoFens(redoFens.slice(1));
+      }
+    } else {
+      await fetch(
+        `${apiDatabase}/randomFen?moveFilter=${moveFilter}&ratingRange=${ratingRange}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          console.log(data);
+          fenData = data;
+          fenData.movePlayed = "";
+        });
+    }
+    const newPosition: string = fenData.fen;
+    setTurn(new Chess(newPosition).turn() === "w" ? "b" : "w");
+    setNextMove(fenData.nextMove);
+    setMovePlayed(fenData.movePlayed);
+    setOriginalPosition(fenData.fen);
+    initialize(newPosition);
+    setUrl(fenData.url);
+    setDidRetry(false);
   }
 
   useEffect(() => {
     newPosition();
-  }, []);
+  }, [userGames]);
 
   function highlightSquares(sourceSquare: string, targetSquare: string) {
     const sourceSquareEl = document.querySelector(
@@ -132,6 +164,7 @@ export default function Board() {
   }
 
   function retry() {
+    setDidRetry(true);
     initialize(originalPosition);
   }
 
@@ -180,11 +213,12 @@ export default function Board() {
 
   useEffect(() => {
     if (game.fen() === originalPosition) {
+      if (didRetry) {
+      }
       setTimeout(() => {
         processMove(nextMove["sourceSquare"], nextMove["targetSquare"]);
-      }, 500);
-    }
-    else if (originalPosition !== '') {
+      }, 250);
+    } else if (originalPosition !== "") {
       updateEvaluation();
     }
   }, [game]);
@@ -207,6 +241,7 @@ export default function Board() {
           <div>Your move: {evaluation.evaluation}</div>
         </div>
       )}
+      {movePlayed !== "" && <div>You played {movePlayed} in the game</div>}
       <Button
         variant="contained"
         disabled={result === Result.IN_PROGRESS}
@@ -218,6 +253,7 @@ export default function Board() {
         variant="contained"
         disabled={result === Result.IN_PROGRESS}
         href={url}
+        onClick={() => console.log(url)}
         target="_blank"
       >
         Analyze on Lichess

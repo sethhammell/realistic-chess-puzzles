@@ -1,11 +1,11 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
-import { Result } from "../enums/result";
-import { Evaluation, FenData, MoveUci } from "../types/chess";
+import { Result, StudyResult } from "../enums/result";
+import { Evaluation, FenData, MoveUci, StudyData } from "../types/chess";
 import { highlightMove, undoHighlight } from "../helpers/highlightMove";
-import Button from "@mui/material/Button";
 import "./board.css";
+import { Mode } from "../enums/mode";
 
 export interface BoardHandler {
   retry: () => void;
@@ -13,7 +13,7 @@ export interface BoardHandler {
 }
 
 interface BoardProps {
-  userGames: boolean;
+  mode: Mode;
   result: Result;
   setResult: React.Dispatch<React.SetStateAction<Result>>;
   setUrl: React.Dispatch<React.SetStateAction<string>>;
@@ -23,12 +23,16 @@ interface BoardProps {
   setMovePlayed: React.Dispatch<React.SetStateAction<string>>;
   turn: string;
   setTurn: React.Dispatch<React.SetStateAction<string>>;
+  userName: string;
+  studyId: string;
+  studyResult: StudyResult;
+  setStudyResult: React.Dispatch<React.SetStateAction<StudyResult>>;
 }
 
 const Board = forwardRef(
   (
     {
-      userGames,
+      mode,
       result,
       setResult,
       setUrl,
@@ -38,6 +42,10 @@ const Board = forwardRef(
       setMovePlayed,
       turn,
       setTurn,
+      userName,
+      studyId,
+      studyResult,
+      setStudyResult,
     }: BoardProps,
     ref
   ) => {
@@ -47,44 +55,68 @@ const Board = forwardRef(
         initialize(originalPosition);
       },
       async newPosition() {
-        let fenData!: FenData;
-        if (userGames) {
-          console.log(redoFens.length);
-          if (!redoFens.length) {
+        if (mode === Mode.STUDY) {
+          let currStudyData!: StudyData;
+          if (!studyData.length) {
+            await fetch(`${apiLichess}/studyPgns?studyId=${studyId}`)
+              .then((res) => res.json())
+              .then((data) => {
+                setStudyData(data["studyPgns"]);
+                currStudyData =
+                  data["studyPgns"][
+                    Math.floor(Math.random() * (data["studyPgns"].length - 1))
+                  ];
+              });
+          } else {
+            currStudyData =
+              studyData[Math.floor(Math.random() * (studyData.length - 1))];
+          }
+          setStudyPgn(currStudyData.moves);
+          setTurn(currStudyData.turn);
+          setStudyPgnIndex(0);
+          setStudyResult(StudyResult.IN_PROGRESS);
+
+          initialize(new Chess().fen());
+          console.log(currStudyData);
+        } else {
+          let fenData!: FenData;
+          if (mode === Mode.REDO) {
+            console.log(redoFens.length);
+            if (!redoFens.length) {
+              await fetch(
+                `${apiLichess}/randomLichessGame?user=${userName}&max=${mostRecentGames}`
+              )
+                .then((res) => res.json())
+                .then((data) => {
+                  setRedoFens(data["redoFens"].slice(1));
+                  fenData = data["redoFens"][0];
+                  console.log(data["redoFens"]);
+                });
+            }
+            if (!!redoFens && redoFens.length) {
+              fenData = redoFens[0];
+              setRedoFens(redoFens.slice(1));
+            }
+          } else {
             await fetch(
-              `${apiLichess}/randomLichessGame?user=${userName}&max=${mostRecentGames}`
+              `${apiDatabase}/randomFen?moveFilter=${moveFilter}&ratingRange=${ratingRange}`
             )
               .then((res) => res.json())
               .then((data) => {
-                setRedoFens(data["redoFens"].slice(1));
-                fenData = data["redoFens"][0];
-                console.log(data["redoFens"]);
+                console.log(data);
+                fenData = data;
+                fenData.movePlayed = "";
               });
           }
-          console.log(redoFens);
-          if (!!redoFens && redoFens.length) {
-            fenData = redoFens[0];
-            setRedoFens(redoFens.slice(1));
-          }
-        } else {
-          await fetch(
-            `${apiDatabase}/randomFen?moveFilter=${moveFilter}&ratingRange=${ratingRange}`
-          )
-            .then((res) => res.json())
-            .then((data) => {
-              console.log(data);
-              fenData = data;
-              fenData.movePlayed = "";
-            });
+          const newPosition: string = fenData.fen;
+          setTurn(new Chess(newPosition).turn() === "w" ? "b" : "w");
+          setNextMove(fenData.nextMove);
+          setMovePlayed(fenData.movePlayed);
+          setOriginalPosition(fenData.fen);
+          initialize(newPosition);
+          setUrl(fenData.url);
+          setDidRetry(false);
         }
-        const newPosition: string = fenData.fen;
-        setTurn(new Chess(newPosition).turn() === "w" ? "b" : "w");
-        setNextMove(fenData.nextMove);
-        setMovePlayed(fenData.movePlayed);
-        setOriginalPosition(fenData.fen);
-        initialize(newPosition);
-        setUrl(fenData.url);
-        setDidRetry(false);
       },
     }));
 
@@ -93,6 +125,8 @@ const Board = forwardRef(
     const apiLichess = "/api/lichess";
 
     const [game, setGame] = useState<Chess>(new Chess());
+    const [prevGame, setPrevGame] = useState<Chess>(new Chess());
+    const [prevPrevGame, setPrevPrevGame] = useState<Chess>(new Chess());
     const [originalPosition, setOriginalPosition] = useState<string>("");
     const [moveFilter, setMoveFilter] = useState<string>("1. e4 e6 2. d4 d5");
     const [ratingRange, setRatingRange] = useState<[number, number]>([0, 4000]);
@@ -105,15 +139,19 @@ const Board = forwardRef(
       sourceSquare: "",
       targetSquare: "",
     });
-    const [userName, setUserName] = useState<string>("Helix487");
     const [redoFens, setRedoFens] = useState<FenData[]>([]);
     const [mostRecentGames, setMostRecentGames] = useState<number>(20);
     const [didRetry, setDidRetry] = useState<boolean>(false);
+    const [studyData, setStudyData] = useState<StudyData[]>([]);
+    const [studyPgn, setStudyPgn] = useState<MoveUci[]>();
+    const [studyPgnIndex, setStudyPgnIndex] = useState<number>(0);
 
     function makeMove(move: any) {
       const gameCopy: Chess = new Chess(game.fen());
       const result = gameCopy.move(move);
       setLastMove(move.from + move.to);
+      setPrevPrevGame(prevGame);
+      setPrevGame(game);
       setGame(gameCopy);
       return result;
     }
@@ -133,6 +171,10 @@ const Board = forwardRef(
       }
 
       if (move === null) return false;
+
+      if (mode === Mode.STUDY) {
+        setStudyPgnIndex(studyPgnIndex + 1);
+      }
 
       undoHighlights();
       highlightSquares(sourceSquare, targetSquare);
@@ -169,10 +211,19 @@ const Board = forwardRef(
       undoHighlights();
       const gameCopy: Chess = new Chess(newPosition);
       setGame(gameCopy);
+      setPrevGame(gameCopy);
+      setPrevPrevGame(gameCopy);
       setIsNewPosition(true);
       setLastMove("");
       setResult(Result.IN_PROGRESS);
     }
+
+    const isBoardEnabled = () => {
+      return (
+        (mode !== Mode.STUDY && result === Result.IN_PROGRESS) ||
+        (mode === Mode.STUDY && studyResult === StudyResult.IN_PROGRESS)
+      );
+    };
 
     function updateEvaluation() {
       const fen = game.fen().replaceAll("/", "%5C");
@@ -224,26 +275,81 @@ const Board = forwardRef(
     }
 
     useEffect(() => {
-      if (game.fen() === originalPosition) {
-        if (didRetry) {
+      if (mode !== Mode.STUDY) {
+        if (game.fen() === originalPosition) {
+          // if (didRetry) {
+          // }
+          setTimeout(() => {
+            processMove(nextMove["sourceSquare"], nextMove["targetSquare"]);
+          }, 250);
+        } else if (originalPosition !== "") {
+          updateEvaluation();
         }
-        setTimeout(() => {
-          processMove(nextMove["sourceSquare"], nextMove["targetSquare"]);
-        }, 250);
-      } else if (originalPosition !== "") {
-        updateEvaluation();
       }
     }, [game]);
+
+    useEffect(() => {
+      console.log(mode, studyPgn, studyPgnIndex);
+      if (
+        mode === Mode.STUDY &&
+        studyPgn &&
+        studyResult !== StudyResult.SUCCESS
+      ) {
+        if (studyPgnIndex % 2 === (turn === "w" ? 1 : 0)) {
+          if (studyResult !== StudyResult.INCORRECT) {
+            if (
+              lastMove.substring(0, 2) ===
+                studyPgn[studyPgnIndex - 1].sourceSquare &&
+              lastMove.substring(2, 4) ===
+                studyPgn[studyPgnIndex - 1].targetSquare
+            ) {
+              if (studyPgnIndex === studyPgn.length) {
+                setStudyResult(StudyResult.SUCCESS);
+                setUrl("https://lichess.org/analysis/" + game.fen());
+              } else {
+                setStudyResult(StudyResult.GOOD_MOVE);
+                setTimeout(() => {
+                  processMove(
+                    studyPgn[studyPgnIndex].sourceSquare,
+                    studyPgn[studyPgnIndex].targetSquare
+                  );
+                  setStudyResult(StudyResult.IN_PROGRESS);
+                }, 1000);
+              }
+            } else {
+              setStudyResult(StudyResult.INCORRECT);
+              setTimeout(() => {
+                setGame(prevPrevGame);
+                undoHighlights();
+                setStudyPgnIndex(Math.max(studyPgnIndex - 2, 0));
+              }, 1000);
+              if (prevPrevGame.fen() === new Chess().fen()) {
+                setStudyResult(StudyResult.IN_PROGRESS);
+              }
+            }
+          } else {
+            processMove(
+              studyPgn[studyPgnIndex].sourceSquare,
+              studyPgn[studyPgnIndex].targetSquare
+            );
+            setStudyResult(StudyResult.IN_PROGRESS);
+          }
+        } else if (studyPgnIndex === studyPgn.length) {
+          setStudyResult(StudyResult.SUCCESS);
+          setUrl("https://lichess.org/analysis/" + game.fen());
+        }
+      }
+    }, [studyPgnIndex]);
 
     return (
       <div>
         <Chessboard
           position={game.fen()}
           onPieceDrop={processMove}
-          arePiecesDraggable={result === Result.IN_PROGRESS}
+          arePiecesDraggable={isBoardEnabled()}
           boardOrientation={turn === "w" ? "white" : "black"}
           snapToCursor={true}
-          boardWidth={800}
+          boardWidth={700}
         />
       </div>
     );

@@ -1,12 +1,21 @@
-import { Button, Checkbox } from "@mui/material";
+import {
+  Button,
+  Checkbox,
+  FormControl,
+  FormControlLabel,
+  FormLabel,
+  Radio,
+  RadioGroup,
+} from "@mui/material";
 import React, { useEffect, useRef, useState } from "react";
 import Board, { BoardHandler } from "../board/board";
-import { Result } from "../enums/result";
+import { Mode } from "../enums/mode";
+import { Result, StudyResult } from "../enums/result";
 import { Evaluation } from "../types/chess";
 import "./home.css";
 
 export default function Home() {
-  const [userGames, setUserGames] = useState<boolean>(false);
+  const [mode, setMode] = useState<Mode>(Mode.PUZZLES);
   const [result, setResult] = useState<Result>(Result.IN_PROGRESS);
   const [url, setUrl] = useState<string>("");
   const [evaluation, setEvaluation] = useState<Evaluation>({
@@ -19,14 +28,44 @@ export default function Home() {
   });
   const [movePlayed, setMovePlayed] = useState<string>("");
   const [turn, setTurn] = useState<string>("");
+  const [userName, setUserName] = useState<string>("Helix487");
+  const [studyId, setStudyId] = useState<string>("f6UavjzS");
+  const [studyResult, setStudyResult] = useState<StudyResult>(
+    StudyResult.IN_PROGRESS
+  );
   const boardRef = useRef<BoardHandler>(null);
 
   useEffect(() => {
     boardRef.current?.newPosition();
-  }, [userGames]);
+  }, [mode]);
 
-  const moveMessage = () =>
-    "Find the best move for " + (turn === "w" ? "white" : "black");
+  const moveMessage = () => {
+    if (mode === Mode.STUDY) {
+      switch (studyResult) {
+        case StudyResult.GOOD_MOVE:
+          return "Good move";
+        case StudyResult.IN_PROGRESS:
+          return "What would you play in this position?";
+        case StudyResult.INCORRECT:
+          return "Retry";
+        case StudyResult.SUCCESS:
+          return "Congratulations! You completed this lesson.";
+      }
+    } else {
+      return "Find the best move for " + (turn === "w" ? "white" : "black");
+    }
+  };
+
+  const nextMessage = () => {
+    switch (mode) {
+      case Mode.PUZZLES:
+        return "Next Puzzle";
+      case Mode.REDO:
+        return "Next Position";
+      case Mode.STUDY:
+        return "Next Lesson";
+    }
+  };
 
   const resultMessage = () =>
     result === Result.SUCCESS
@@ -34,6 +73,13 @@ export default function Home() {
       : result === Result.PARTIAL_SUCCESS
       ? "Good move!"
       : "That's not right, try something else.";
+
+  const isDisabled = () => {
+    return (
+      (mode !== Mode.STUDY && result === Result.IN_PROGRESS) ||
+      (mode === Mode.STUDY && studyResult !== StudyResult.SUCCESS)
+    );
+  };
 
   return (
     <div>
@@ -43,7 +89,7 @@ export default function Home() {
       <div className="board">
         <Board
           ref={boardRef}
-          userGames={userGames}
+          mode={mode}
           result={result}
           setResult={setResult}
           setUrl={setUrl}
@@ -53,6 +99,10 @@ export default function Home() {
           setMovePlayed={setMovePlayed}
           turn={turn}
           setTurn={setTurn}
+          userName={userName}
+          studyId={studyId}
+          studyResult={studyResult}
+          setStudyResult={setStudyResult}
         />
       </div>
       {result !== Result.IN_PROGRESS && (
@@ -64,14 +114,14 @@ export default function Home() {
       {movePlayed !== "" && <div>You played {movePlayed} in the game</div>}
       <Button
         variant="contained"
-        disabled={result === Result.IN_PROGRESS}
+        disabled={isDisabled()}
         onClick={boardRef.current?.newPosition}
       >
-        Next Puzzle
+        {nextMessage()}
       </Button>
       <Button
         variant="contained"
-        disabled={result === Result.IN_PROGRESS}
+        disabled={isDisabled()}
         href={url}
         onClick={() => console.log(url)}
         target="_blank"
@@ -87,7 +137,33 @@ export default function Home() {
       >
         Retry
       </Button>
-      <Checkbox checked={userGames} onChange={() => setUserGames(!userGames)} />
+      <FormControl>
+        <FormLabel id="demo-controlled-radio-buttons-group">Mode</FormLabel>
+        <RadioGroup
+          value={mode}
+          onChange={(e) => {
+            setMode(parseInt((e.target as HTMLInputElement).value) as Mode);
+          }}
+        >
+          <FormControlLabel
+            value={Mode.PUZZLES}
+            control={<Radio />}
+            label="Puzzles"
+          />
+          <FormControlLabel
+            value={Mode.REDO}
+            control={<Radio />}
+            label="Redo Mistakes"
+          />
+          <FormControlLabel
+            value={Mode.STUDY}
+            control={<Radio />}
+            label="Study"
+          />
+        </RadioGroup>
+      </FormControl>
+      {/* {mode === Mode.STUDY && 
+      <Checkbox checked={userGames} onChange={() => setUserGames(!userGames)} />} */}
     </div>
   );
 }

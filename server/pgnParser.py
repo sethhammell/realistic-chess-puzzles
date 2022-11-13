@@ -1,17 +1,19 @@
 import yaml
 from pymongo import MongoClient
+from copy import deepcopy
 
 # pgn_path = r"pgns\lichess_db_standard_rated_2013-01.pgn"
 # pgn_path = r"pgns\lichess_db_standard_rated_2017-02.pgn"
 pgn_path = r"pgns\test.pgn"
 config_path = r"config.yaml"
 
-### could use bigger file and just keep counter of 1 million so database
+# could use bigger file and just keep counter of 1 million so database
 # can be perfectly filled (don't increment if game is skipped)
 
 # https://lichess.org/api/games/user/Helix487?max=100&pgnInJson=true
 
-def parsePgns(pgn_text, includePlayers = False):
+
+def parsePgns(pgn_text, includePlayers=False):
     pgns = []
     whiteElo = 0
     curr = {}
@@ -45,7 +47,7 @@ def parsePgns(pgn_text, includePlayers = False):
                 curr["opening"] = l[len("[Opening") + 2:-3]
             case "1.":
                 curr["moves"] = l
-                
+
                 moves = curr["moves"].split(' ')
                 moves = moves[:-2]
                 lastChar = moves[-1][-1]
@@ -59,6 +61,36 @@ def parsePgns(pgn_text, includePlayers = False):
                 #     print(totalMoves, curr["avgElo"] != '?', curr["url"], curr["avgElo"], curr["opening"], curr["moves"])
                 curr = {}
     return pgns
+
+
+def parseStudy(base_pgn, study_text):
+    chapter = []
+    current = deepcopy(base_pgn[:-1])
+    bracDepth = 0
+    variation = []
+    # print(study_text)
+    for m in study_text:
+        if '(' in m:
+            if bracDepth != 0:
+                variation.append(m)
+            bracDepth += 1
+        elif ')' in m:
+            bracDepth -= 1
+            if bracDepth != 0:
+                variation.append(m)
+            else:
+                variation.append(m[:-1])
+                chapter += parseStudy(deepcopy(current), variation)
+                variation = []
+        elif '.' not in m:
+            # print(current, variation, bracDepth, m)
+            if bracDepth:
+                variation.append(m)
+            else:
+                current.append(m)
+    chapter.append(current)
+    return chapter
+
 
 def loadDB():
     f = open(pgn_path)
@@ -83,6 +115,7 @@ def loadDB():
     for p in pgns:
         cluster.insert_one(p)
 
+
 def clearDB():
     with open(config_path, 'r') as stream:
         config = yaml.safe_load(stream)
@@ -96,6 +129,7 @@ def clearDB():
     cluster = database[cluster_name]
 
     cluster.delete_many({})
+
 
 def searchDB():
     with open(config_path, 'r') as stream:

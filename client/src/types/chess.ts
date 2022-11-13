@@ -14,3 +14,8 @@ export interface MoveUci {
   sourceSquare: string;
   targetSquare: string;
 }
+
+export interface StudyData {
+  turn: string;
+  moves: MoveUci[];
+}

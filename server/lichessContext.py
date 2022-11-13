@@ -1,6 +1,6 @@
 import requests
 from evaluate import evaluation
-from pgnParser import parsePgns
+from pgnParser import parsePgns, parseStudy
 import chess.pgn
 import random
 from accuracy import computeAccuracy
@@ -82,4 +82,45 @@ async def fetchLichessGames(user, max):
             p += 1
     return redoFens
 
+
+def fetchLichessStudy(studyId):
+    response = requests.get(
+        "https://lichess.org/api/study/" + studyId + ".pgn?clocks=false&comments=false")
+
+    pgn_text = response.text.split('\n')
+    for i in range(len(pgn_text)):
+        pgn_text[i] += '\n'
+
+    turn = 'w'
+    turns = []
+    chapters = []
+    for l in pgn_text:
+        s = l.split(' ')
+        if s[0] == '1.':
+            study_text = [m for m in s if m != '' and '*' not in m]
+            newChapter = parseStudy([], study_text)
+            chapters += newChapter
+            for i in range(len(newChapter)):
+                turns.append(turn)
+        elif s[0] == '[Event':
+            turn = 'w' if len(s) % 2 == 0 else 'b'
+
+    chaptersUCI = []
+
+    print(len(turns), len(chapters))
+    for x, c in enumerate(chapters):
+        moves = []
+        game = chess.pgn.read_game(io.StringIO(' '.join(c)))
+        mainlineMoves = game.mainline_moves()
+        for m in mainlineMoves:
+            move = m.uci()
+            moves.append({"sourceSquare": move[:-2], "targetSquare": move[2:]})
+        chaptersUCI.append({"turn": turns[x], "moves": moves})
+
+    # for c in chaptersUCI:
+    #     print(c)
+    return chaptersUCI
+
+
+# fetchLichessStudy('f6UavjzS')
 # asyncio.run(fetchLichessGames("Helix487", 20))

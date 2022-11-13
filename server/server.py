@@ -1,7 +1,7 @@
 from flask import Flask, request
 from mongoContext import randomFen, gameQuantity
 from evaluate import evaluation
-from lichessContext import fetchLichessGames
+from lichessContext import fetchLichessGames, fetchLichessStudy
 
 app = Flask(__name__)
 
@@ -33,8 +33,14 @@ async def randomLichessGame():
     user = request.args.get('user')
     max = request.args.get('max')
     redoFens = await fetchLichessGames(user, max)
-    print(redoFens)
     return {"redoFens": redoFens}
+
+
+@app.route("/api/lichess/studyPgns", methods=["GET"])
+async def studyPgns():
+    studyId = request.args.get('studyId')
+    studyPgns = fetchLichessStudy(studyId)
+    return {"studyPgns": studyPgns}
 
 if __name__ == "__main__":
     app.run(debug=True)

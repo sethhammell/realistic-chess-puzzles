@@ -20,11 +20,11 @@ export default function Home() {
   const [url, setUrl] = useState<string>("");
   const [evaluation, setEvaluation] = useState<Evaluation>({
     evaluation: 0,
-    moves: "",
+    moves: [],
   });
   const [solution, setSolution] = useState<Evaluation>({
     evaluation: 0,
-    moves: "",
+    moves: [],
   });
   const [movePlayed, setMovePlayed] = useState<string>("");
   const [turn, setTurn] = useState<string>("");
@@ -33,6 +33,9 @@ export default function Home() {
   const [studyResult, setStudyResult] = useState<StudyResult>(
     StudyResult.IN_PROGRESS
   );
+  const [studyMistake, setStudyMistake] = useState<boolean>(false);
+  const [studySolution, setStudySolution] = useState<string>("");
+  const [showSolution, setShowSolution] = useState<boolean>(false);
   const boardRef = useRef<BoardHandler>(null);
 
   useEffect(() => {
@@ -81,6 +84,25 @@ export default function Home() {
     );
   };
 
+  const showSolutionDisabled = () => {
+    return (
+      (mode !== Mode.STUDY && result === Result.IN_PROGRESS) ||
+      (mode === Mode.STUDY && !studyMistake)
+    );
+  };
+
+  const displaySolution = () => {
+    if (mode === Mode.STUDY) {
+      return studySolution;
+    } else {
+      return solution.moves[0];
+    }
+  };
+
+  useEffect(() => {
+    setShowSolution(false);
+  }, [studySolution, solution]);
+
   return (
     <div>
       <div>
@@ -103,6 +125,8 @@ export default function Home() {
           studyId={studyId}
           studyResult={studyResult}
           setStudyResult={setStudyResult}
+          setStudyMistake={setStudyMistake}
+          setStudySolution={setStudySolution}
         />
       </div>
       {result !== Result.IN_PROGRESS && (
@@ -137,6 +161,14 @@ export default function Home() {
       >
         Retry
       </Button>
+      <Button
+        variant="contained"
+        disabled={showSolutionDisabled() || showSolution}
+        onClick={() => setShowSolution(true)}
+      >
+        Show Solution
+      </Button>
+      {showSolution && <div>{displaySolution()}</div>}
       <FormControl>
         <FormLabel id="demo-controlled-radio-buttons-group">Mode</FormLabel>
         <RadioGroup

@@ -1,6 +1,6 @@
 export interface Evaluation {
   evaluation: string | number;
-  moves: string;
+  moves: string[];
 }
 
 export interface FenData {

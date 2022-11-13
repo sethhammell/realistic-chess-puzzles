@@ -27,6 +27,8 @@ interface BoardProps {
   studyId: string;
   studyResult: StudyResult;
   setStudyResult: React.Dispatch<React.SetStateAction<StudyResult>>;
+  setStudySolution: React.Dispatch<React.SetStateAction<string>>;
+  setStudyMistake: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const Board = forwardRef(
@@ -46,6 +48,8 @@ const Board = forwardRef(
       studyId,
       studyResult,
       setStudyResult,
+      setStudySolution,
+      setStudyMistake,
     }: BoardProps,
     ref
   ) => {
@@ -182,6 +186,17 @@ const Board = forwardRef(
       return true;
     }
 
+    const getStudySolution = () => {
+      if (studyPgn && studyPgnIndex < studyPgn.length) {
+        return (
+          studyPgn[studyPgnIndex].sourceSquare +
+          studyPgn[studyPgnIndex].targetSquare
+        );
+      } else {
+        return "";
+      }
+    };
+
     function highlightSquares(sourceSquare: string, targetSquare: string) {
       const sourceSquareEl = document.querySelector(
         `[data-square="${sourceSquare}"]`
@@ -275,6 +290,17 @@ const Board = forwardRef(
     }
 
     useEffect(() => {
+      if (studyResult === StudyResult.INCORRECT) {
+        setStudyMistake(true);
+      } else if (
+        studyResult === StudyResult.GOOD_MOVE ||
+        studyResult === StudyResult.SUCCESS
+      ) {
+        setStudyMistake(false);
+      }
+    }, [studyResult]);
+
+    useEffect(() => {
       if (mode !== Mode.STUDY) {
         if (game.fen() === originalPosition) {
           // if (didRetry) {
@@ -295,6 +321,7 @@ const Board = forwardRef(
         studyPgn &&
         studyResult !== StudyResult.SUCCESS
       ) {
+        setStudySolution(getStudySolution());
         if (studyPgnIndex % 2 === (turn === "w" ? 1 : 0)) {
           if (studyResult !== StudyResult.INCORRECT) {
             if (

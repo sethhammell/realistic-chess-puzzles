@@ -66,6 +66,10 @@ const Board = forwardRef(
               .then((res) => res.json())
               .then((data) => {
                 setStudyData(data["studyPgns"]);
+                console.log(
+                  Math.floor(Math.random() * (data["studyPgns"].length - 1)),
+                  data["studyPgns"].length
+                );
                 currStudyData =
                   data["studyPgns"][
                     Math.floor(Math.random() * (data["studyPgns"].length - 1))
@@ -78,8 +82,10 @@ const Board = forwardRef(
           setStudyPgn(currStudyData.moves);
           setTurn(currStudyData.turn);
           setStudyPgnIndex(0);
+          if (currStudyData.turn) {
+            updateStudy();
+          }
           setStudyResult(StudyResult.IN_PROGRESS);
-
           initialize(new Chess().fen());
           console.log(currStudyData);
         } else {
@@ -315,6 +321,10 @@ const Board = forwardRef(
     }, [game]);
 
     useEffect(() => {
+      updateStudy();
+    }, [studyPgnIndex, studyPgn]);
+
+    function updateStudy() {
       console.log(mode, studyPgn, studyPgnIndex);
       if (
         mode === Mode.STUDY &&
@@ -324,7 +334,15 @@ const Board = forwardRef(
         setStudySolution(getStudySolution());
         if (studyPgnIndex % 2 === (turn === "w" ? 1 : 0)) {
           if (studyResult !== StudyResult.INCORRECT) {
-            if (
+            if (studyPgnIndex === 0) {
+              setTimeout(() => {
+                processMove(
+                  studyPgn[studyPgnIndex].sourceSquare,
+                  studyPgn[studyPgnIndex].targetSquare
+                );
+                setStudyResult(StudyResult.IN_PROGRESS);
+              }, 1000);
+            } else if (
               lastMove.substring(0, 2) ===
                 studyPgn[studyPgnIndex - 1].sourceSquare &&
               lastMove.substring(2, 4) ===
@@ -355,6 +373,7 @@ const Board = forwardRef(
               }
             }
           } else {
+            console.log("hi");
             processMove(
               studyPgn[studyPgnIndex].sourceSquare,
               studyPgn[studyPgnIndex].targetSquare
@@ -366,7 +385,7 @@ const Board = forwardRef(
           setUrl("https://lichess.org/analysis/" + game.fen());
         }
       }
-    }, [studyPgnIndex]);
+    }
 
     return (
       <div>

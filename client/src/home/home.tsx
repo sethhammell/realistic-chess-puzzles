@@ -84,6 +84,10 @@ export default function Home() {
     );
   };
 
+  const isDisabledUrl = () => {
+    return mode !== Mode.STUDY && result === Result.IN_PROGRESS;
+  };
+
   const showSolutionDisabled = () => {
     return (
       (mode !== Mode.STUDY && result === Result.IN_PROGRESS) ||
@@ -145,7 +149,7 @@ export default function Home() {
       </Button>
       <Button
         variant="contained"
-        disabled={isDisabled()}
+        disabled={isDisabledUrl()}
         href={url}
         onClick={() => console.log(url)}
         target="_blank"

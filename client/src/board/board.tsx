@@ -6,6 +6,7 @@ import { Evaluation, FenData, MoveUci, StudyData } from "../types/chess";
 import { highlightMove, undoHighlight } from "../helpers/highlightMove";
 import "./board.css";
 import { Mode } from "../enums/mode";
+import { combineMoveUci } from "../helpers/moveUci";
 
 export interface BoardHandler {
   retry: () => void;
@@ -58,8 +59,10 @@ const Board = forwardRef(
         setDidRetry(true);
         initialize(originalPosition);
       },
+      // studyMoveFilter
       async newPosition() {
         if (mode === Mode.STUDY) {
+          let newStudyData: StudyData[] = [];
           let currStudyData!: StudyData;
           if (!studyData.length) {
             await fetch(`${apiLichess}/studyPgns?studyId=${studyId}`)
@@ -70,15 +73,51 @@ const Board = forwardRef(
                   Math.floor(Math.random() * (data["studyPgns"].length - 1)),
                   data["studyPgns"].length
                 );
-                currStudyData =
-                  data["studyPgns"][
-                    Math.floor(Math.random() * (data["studyPgns"].length - 1))
-                  ];
+                newStudyData = data["studyPgns"];
               });
           } else {
-            currStudyData =
-              studyData[Math.floor(Math.random() * (studyData.length - 1))];
+            console.log("length: %d", studyData.length);
+            newStudyData = studyData;
           }
+
+          console.log(newStudyData);
+
+          if (studyColorFilter) {
+            newStudyData = newStudyData.filter((line) => {
+              return line.turn === studyColorFilter;
+            });
+          }
+
+          console.log(newStudyData);
+
+          if (studyMoveFilter) {
+            newStudyData = newStudyData.filter((line) => {
+              if (line.moves.length < studyMoveFilter.length) {
+                return false;
+              }
+
+              for (const i in studyMoveFilter) {
+                if (
+                  combineMoveUci(studyMoveFilter[i]) !==
+                  combineMoveUci(line.moves[i])
+                ) {
+                  return false;
+                }
+              }
+              return true;
+            });
+          }
+
+          console.log(newStudyData);
+
+          const randomLineIndex = Math.floor(
+            Math.random() * (newStudyData.length - 1)
+          );
+          currStudyData = newStudyData[randomLineIndex];
+
+          newStudyData.splice(randomLineIndex, 1);
+
+          setStudyData(newStudyData);
           setStudyPgn(currStudyData.moves);
           setTurn(currStudyData.turn);
           setStudyPgnIndex(0);
@@ -139,11 +178,17 @@ const Board = forwardRef(
     const [prevPrevGame, setPrevPrevGame] = useState<Chess>(new Chess());
     const [originalPosition, setOriginalPosition] = useState<string>("");
     const [moveFilter, setMoveFilter] = useState<string>("1. e4 e6 2. d4 d5");
+    const [studyMoveFilter, setStudyMoveFilter] = useState<MoveUci[]>([
+      { sourceSquare: "e2", targetSquare: "e4" },
+    ]);
+    const [studyColorFilter, setStudyColorFilter] = useState<string | null>(
+      "b"
+    );
     const [ratingRange, setRatingRange] = useState<[number, number]>([0, 4000]);
     const [isNewPosition, setIsNewPosition] = useState<boolean>(true);
     const [lastMove, setLastMove] = useState<string>("");
     const [lastMoveEls, setLastMoveEls] = useState<
-      null | [HTMLElement, HTMLElement]
+      null | [[HTMLElement, string], [HTMLElement, string]]
     >(null);
     const [nextMove, setNextMove] = useState<MoveUci>({
       sourceSquare: "",
@@ -184,6 +229,7 @@ const Board = forwardRef(
 
       if (mode === Mode.STUDY) {
         setStudyPgnIndex(studyPgnIndex + 1);
+        setUrl("https://lichess.org/analysis/" + game.fen());
       }
 
       undoHighlights();
@@ -194,10 +240,7 @@ const Board = forwardRef(
 
     const getStudySolution = () => {
       if (studyPgn && studyPgnIndex < studyPgn.length) {
-        return (
-          studyPgn[studyPgnIndex].sourceSquare +
-          studyPgn[studyPgnIndex].targetSquare
-        );
+        return combineMoveUci(studyPgn[studyPgnIndex]);
       } else {
         return "";
       }
@@ -214,16 +257,19 @@ const Board = forwardRef(
       ) as HTMLElement;
       targetSquareEl.style.backgroundColor = highlightMove(targetSquare);
 
-      setLastMoveEls([sourceSquareEl, targetSquareEl]);
+      setLastMoveEls([
+        [sourceSquareEl, sourceSquare],
+        [targetSquareEl, targetSquare],
+      ]);
     }
 
     function undoHighlights() {
       if (lastMoveEls !== null && lastMove !== "") {
-        lastMoveEls[0].style.backgroundColor = undoHighlight(
-          lastMove.substring(0, 2)
+        lastMoveEls[0][0].style.backgroundColor = undoHighlight(
+          lastMoveEls[0][1]
         );
-        lastMoveEls[1].style.backgroundColor = undoHighlight(
-          lastMove.substring(2, 4)
+        lastMoveEls[1][0].style.backgroundColor = undoHighlight(
+          lastMoveEls[1][1]
         );
       }
     }
@@ -325,6 +371,7 @@ const Board = forwardRef(
     }, [studyPgnIndex, studyPgn]);
 
     function updateStudy() {
+      const studyTimeout = 0;
       console.log(mode, studyPgn, studyPgnIndex);
       if (
         mode === Mode.STUDY &&
@@ -341,7 +388,7 @@ const Board = forwardRef(
                   studyPgn[studyPgnIndex].targetSquare
                 );
                 setStudyResult(StudyResult.IN_PROGRESS);
-              }, 1000);
+              }, studyTimeout);
             } else if (
               lastMove.substring(0, 2) ===
                 studyPgn[studyPgnIndex - 1].sourceSquare &&
@@ -359,7 +406,7 @@ const Board = forwardRef(
                     studyPgn[studyPgnIndex].targetSquare
                   );
                   setStudyResult(StudyResult.IN_PROGRESS);
-                }, 1000);
+                }, studyTimeout);
               }
             } else {
               setStudyResult(StudyResult.INCORRECT);
@@ -367,7 +414,7 @@ const Board = forwardRef(
                 setGame(prevPrevGame);
                 undoHighlights();
                 setStudyPgnIndex(Math.max(studyPgnIndex - 2, 0));
-              }, 1000);
+              }, studyTimeout);
               if (prevPrevGame.fen() === new Chess().fen()) {
                 setStudyResult(StudyResult.IN_PROGRESS);
               }

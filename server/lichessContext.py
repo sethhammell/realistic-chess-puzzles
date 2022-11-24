@@ -99,6 +99,14 @@ def fetchLichessStudy(studyId):
         if s[0] == '1.':
             study_text = [m for m in s if m != '' and '*' not in m]
             newChapter = parseStudy([], study_text)
+            bc = 1
+            for j in study_text:
+                if '(' in j:
+                    bc += 1
+            # print(bc)
+            # print(len(newChapter))
+            # print(study_text)
+            # print(newChapter)
             chapters += newChapter
             for i in range(len(newChapter)):
                 turns.append(turn)
@@ -116,6 +124,8 @@ def fetchLichessStudy(studyId):
             move = m.uci()
             moves.append({"sourceSquare": move[:-2], "targetSquare": move[2:]})
         chaptersUCI.append({"turn": turns[x], "moves": moves})
+        # if turns[x] == 'b':
+        #     print(mainlineMoves)
 
     # for c in chaptersUCI:
     #     print(c)

@@ -68,15 +68,14 @@ def parseStudy(base_pgn, study_text):
     current = deepcopy(base_pgn[:-1])
     bracDepth = 0
     variation = []
-    # print(study_text)
     for m in study_text:
         if '(' in m:
             if bracDepth != 0:
                 variation.append(m)
-            bracDepth += 1
+            bracDepth += m.count('(')
         elif ')' in m:
-            bracDepth -= 1
-            if bracDepth != 0:
+            bracDepth -= m.count(')')
+            if bracDepth > 0:
                 variation.append(m)
             else:
                 variation.append(m[:-1])

@@ -205,7 +205,18 @@ const Board = forwardRef(
       const gameCopy: Chess = new Chess(game.fen());
       const result = gameCopy.move(move);
       setLastMove(move.from + move.to);
-      setPrevPrevGame(prevGame);
+      if (mode === Mode.STUDY) {
+        if (studyPgnIndex > 1) {
+          const newPrevPrevGame: Chess = new Chess(prevPrevGame.fen());
+          newPrevPrevGame.move({
+            from: studyPgn![studyPgnIndex - 2].sourceSquare,
+            to: studyPgn![studyPgnIndex - 2].targetSquare,
+          });
+          setPrevPrevGame(newPrevPrevGame);
+        }
+      } else {
+        setPrevPrevGame(prevGame);
+      }
       setPrevGame(game);
       setGame(gameCopy);
       return result;
@@ -372,7 +383,7 @@ const Board = forwardRef(
 
     function updateStudy() {
       const studyTimeout = 0;
-      console.log(mode, studyPgn, studyPgnIndex);
+      console.log(mode, studyPgn, studyPgnIndex, studyResult);
       if (
         mode === Mode.STUDY &&
         studyPgn &&
@@ -415,7 +426,7 @@ const Board = forwardRef(
                 undoHighlights();
                 setStudyPgnIndex(Math.max(studyPgnIndex - 2, 0));
               }, studyTimeout);
-              if (prevPrevGame.fen() === new Chess().fen()) {
+              if (prevPrevGame.fen() === new Chess().fen() && turn === "w") {
                 setStudyResult(StudyResult.IN_PROGRESS);
               }
             }

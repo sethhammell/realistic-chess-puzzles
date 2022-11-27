@@ -15,7 +15,7 @@ import { Evaluation } from "../types/chess";
 import "./home.css";
 
 export default function Home() {
-  const [mode, setMode] = useState<Mode>(Mode.PUZZLES);
+  const [mode, setMode] = useState<Mode | null>(null);
   const [result, setResult] = useState<Result>(Result.IN_PROGRESS);
   const [url, setUrl] = useState<string>("");
   const [evaluation, setEvaluation] = useState<Evaluation>({
@@ -39,7 +39,10 @@ export default function Home() {
   const boardRef = useRef<BoardHandler>(null);
 
   useEffect(() => {
-    boardRef.current?.newPosition();
+    console.log(mode);
+    if (mode !== null) {
+      boardRef.current?.newPosition();
+    }
   }, [mode]);
 
   const moveMessage = () => {
@@ -54,8 +57,10 @@ export default function Home() {
         case StudyResult.SUCCESS:
           return "Congratulations! You completed this lesson.";
       }
-    } else {
+    } else if (turn !== "") {
       return "Find the best move for " + (turn === "w" ? "white" : "black");
+    } else {
+      return "";
     }
   };
 
@@ -67,6 +72,8 @@ export default function Home() {
         return "Next Position";
       case Mode.STUDY:
         return "Next Lesson";
+      default:
+        return "Next Position";
     }
   };
 

@@ -14,7 +14,7 @@ export interface BoardHandler {
 }
 
 interface BoardProps {
-  mode: Mode;
+  mode: Mode | null;
   result: Result;
   setResult: React.Dispatch<React.SetStateAction<Result>>;
   setUrl: React.Dispatch<React.SetStateAction<string>>;
@@ -179,10 +179,10 @@ const Board = forwardRef(
     const [originalPosition, setOriginalPosition] = useState<string>("");
     const [moveFilter, setMoveFilter] = useState<string>("1. e4 e6 2. d4 d5");
     const [studyMoveFilter, setStudyMoveFilter] = useState<MoveUci[]>([
-      { sourceSquare: "e2", targetSquare: "e4" },
+      // { sourceSquare: "e2", targetSquare: "e4" },
     ]);
     const [studyColorFilter, setStudyColorFilter] = useState<string | null>(
-      "b"
+      null // "b"
     );
     const [ratingRange, setRatingRange] = useState<[number, number]>([0, 4000]);
     const [isNewPosition, setIsNewPosition] = useState<boolean>(true);
@@ -370,7 +370,7 @@ const Board = forwardRef(
           // }
           setTimeout(() => {
             processMove(nextMove["sourceSquare"], nextMove["targetSquare"]);
-          }, 250);
+          }, 0);
         } else if (originalPosition !== "") {
           updateEvaluation();
         }
@@ -451,7 +451,7 @@ const Board = forwardRef(
           position={game.fen()}
           onPieceDrop={processMove}
           arePiecesDraggable={isBoardEnabled()}
-          boardOrientation={turn === "w" ? "white" : "black"}
+          boardOrientation={turn === "b" ? "black" : "white"}
           snapToCursor={true}
           boardWidth={700}
         />

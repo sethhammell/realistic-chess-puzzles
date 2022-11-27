@@ -4,9 +4,10 @@ import { Chessboard } from "react-chessboard";
 import { Result, StudyResult } from "../enums/result";
 import { Evaluation, FenData, MoveUci, StudyData } from "../types/chess";
 import { highlightMove, undoHighlight } from "../helpers/highlightMove";
-import "./board.css";
 import { Mode } from "../enums/mode";
 import { combineMoveUci } from "../helpers/moveUci";
+// import LoadingOverlay from "react-loading-overlay";
+import "./board.css";
 
 export interface BoardHandler {
   retry: () => void;
@@ -61,6 +62,7 @@ const Board = forwardRef(
       },
       // studyMoveFilter
       async newPosition() {
+        setIsLoading(true);
         if (mode === Mode.STUDY) {
           let newStudyData: StudyData[] = [];
           let currStudyData!: StudyData;
@@ -166,6 +168,7 @@ const Board = forwardRef(
           setUrl(fenData.url);
           setDidRetry(false);
         }
+        setIsLoading(false);
       },
     }));
 
@@ -200,6 +203,7 @@ const Board = forwardRef(
     const [studyData, setStudyData] = useState<StudyData[]>([]);
     const [studyPgn, setStudyPgn] = useState<MoveUci[]>();
     const [studyPgnIndex, setStudyPgnIndex] = useState<number>(0);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
 
     function makeMove(move: any) {
       const gameCopy: Chess = new Chess(game.fen());
@@ -454,6 +458,16 @@ const Board = forwardRef(
           boardOrientation={turn === "b" ? "black" : "white"}
           snapToCursor={true}
           boardWidth={700}
+        />
+        <LoadingOverlay
+          active={isLoading}
+          spinner
+          text="Loading board"
+          styles={{
+            content: (css: React.CSSProperties) => {
+              return css;
+            },
+          }}
         />
       </div>
     );

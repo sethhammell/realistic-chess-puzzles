@@ -142,7 +142,12 @@ export default function Home() {
       </div>
       {result !== Result.IN_PROGRESS && (
         <div>
-          <div>Best move: {solution.evaluation}</div>
+          <div>
+            Best move
+            {result !== Result.FAILURE
+              ? " (" + solution.moves[0] + ")"
+              : ""}: {solution.evaluation}
+          </div>
           <div>Your move: {evaluation.evaluation}</div>
         </div>
       )}

@@ -6,7 +6,7 @@ import { Evaluation, FenData, MoveUci, StudyData } from "../types/chess";
 import { highlightMove, undoHighlight } from "../helpers/highlightMove";
 import { Mode } from "../enums/mode";
 import { combineMoveUci } from "../helpers/moveUci";
-// import LoadingOverlay from "react-loading-overlay";
+import LoadingScreen from "react-loading-screen";
 import "./board.css";
 
 export interface BoardHandler {
@@ -451,6 +451,14 @@ const Board = forwardRef(
 
     return (
       <div>
+        <LoadingScreen
+          loading={isLoading}
+          bgColor="#1b211d"
+          spinnerColor="#9ee5f8"
+          textColor="#ffffff"
+          text="Loading Board..."
+          children={<div />}
+        />
         <Chessboard
           position={game.fen()}
           onPieceDrop={processMove}
@@ -458,16 +466,6 @@ const Board = forwardRef(
           boardOrientation={turn === "b" ? "black" : "white"}
           snapToCursor={true}
           boardWidth={700}
-        />
-        <LoadingOverlay
-          active={isLoading}
-          spinner
-          text="Loading board"
-          styles={{
-            content: (css: React.CSSProperties) => {
-              return css;
-            },
-          }}
         />
       </div>
     );

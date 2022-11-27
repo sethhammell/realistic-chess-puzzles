@@ -12,7 +12,7 @@ async def fetchLichessGames(user, max):
     redoFens = []
     while redoFens == []:
         response = requests.get("https://lichess.org/api/games/user/" +
-                                user + "?max=" + str(max) + "&pgnInJson=true&rated=true")
+                                user + "?max=" + str(max) + "&pgnInJson=true&rated=true&perfType=rapid")
         pgn_text = response.text.split('\n')
         for i in range(len(pgn_text)):
             pgn_text[i] += '\n'

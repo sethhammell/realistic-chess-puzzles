@@ -6,6 +6,7 @@ import {
   FormLabel,
   Radio,
   RadioGroup,
+  TextField,
 } from "@mui/material";
 import React, { useEffect, useRef, useState } from "react";
 import Board, { BoardHandler } from "../board/board";
@@ -28,7 +29,7 @@ export default function Home() {
   });
   const [movePlayed, setMovePlayed] = useState<string>("");
   const [turn, setTurn] = useState<string>("");
-  const [userName, setUserName] = useState<string>("Helix487");
+  const [userName, setUserName] = useState<string>("usernbame1245");
   const [studyId, setStudyId] = useState<string>("f6UavjzS");
   const [studyResult, setStudyResult] = useState<StudyResult>(
     StudyResult.IN_PROGRESS
@@ -114,102 +115,134 @@ export default function Home() {
     setShowSolution(false);
   }, [studySolution, solution]);
 
+  let filters;
+  if (mode === Mode.PUZZLES) {
+    filters = <TextField variant="standard" label="Move Filter"></TextField>;
+  } else if (mode === Mode.REDO) {
+    filters = (
+      <>
+        <TextField variant="standard" label="Lichess Username"></TextField>
+        {/* add checkboxes for rapid blitz bullet */}
+      </>
+    );
+  } else if (mode === Mode.STUDY) {
+    filters = (
+      <>
+        <TextField variant="standard" label="Move Filter"></TextField>
+        {/* add white, black, both radio buttons */}
+      </>
+    );
+  }
+
   return (
-    <div>
-      <div>
-        {result === Result.IN_PROGRESS ? moveMessage() : resultMessage()}
-      </div>
-      <div className="board">
-        <Board
-          ref={boardRef}
-          mode={mode}
-          result={result}
-          setResult={setResult}
-          setUrl={setUrl}
-          setEvaluation={setEvaluation}
-          solution={solution}
-          setSolution={setSolution}
-          setMovePlayed={setMovePlayed}
-          turn={turn}
-          setTurn={setTurn}
-          userName={userName}
-          studyId={studyId}
-          studyResult={studyResult}
-          setStudyResult={setStudyResult}
-          setStudyMistake={setStudyMistake}
-          setStudySolution={setStudySolution}
-        />
-      </div>
-      {result !== Result.IN_PROGRESS && (
-        <div>
-          <div>
-            Best move
-            {result !== Result.FAILURE
-              ? " (" + solution.moves[0] + ")"
-              : ""}: {solution.evaluation}
-          </div>
-          <div>Your move: {evaluation.evaluation}</div>
+    <div className="home">
+      <div className="homeLeft" />
+      <div className="homeCenter">
+        <div className="message">
+          {result === Result.IN_PROGRESS ? moveMessage() : resultMessage()}
         </div>
-      )}
-      {movePlayed !== "" && <div>You played {movePlayed} in the game</div>}
-      <Button
-        variant="contained"
-        disabled={isDisabled()}
-        onClick={boardRef.current?.newPosition}
-      >
-        {nextMessage()}
-      </Button>
-      <Button
-        variant="contained"
-        disabled={isDisabledUrl()}
-        href={url}
-        onClick={() => console.log(url)}
-        target="_blank"
-      >
-        Analyze on Lichess
-      </Button>
-      <Button
-        variant="contained"
-        disabled={
-          !(result === Result.FAILURE || result === Result.PARTIAL_SUCCESS)
-        }
-        onClick={() => boardRef.current?.retry()}
-      >
-        Retry
-      </Button>
-      <Button
-        variant="contained"
-        disabled={showSolutionDisabled() || showSolution}
-        onClick={() => setShowSolution(true)}
-      >
-        Show Solution
-      </Button>
-      {showSolution && <div>{displaySolution()}</div>}
-      <FormControl>
-        <FormLabel id="demo-controlled-radio-buttons-group">Mode</FormLabel>
-        <RadioGroup
-          value={mode}
-          onChange={(e) => {
-            setMode(parseInt((e.target as HTMLInputElement).value) as Mode);
-          }}
-        >
-          <FormControlLabel
-            value={Mode.PUZZLES}
-            control={<Radio />}
-            label="Puzzles"
+        <div className="board">
+          <Board
+            ref={boardRef}
+            mode={mode}
+            result={result}
+            setResult={setResult}
+            setUrl={setUrl}
+            setEvaluation={setEvaluation}
+            solution={solution}
+            setSolution={setSolution}
+            setMovePlayed={setMovePlayed}
+            turn={turn}
+            setTurn={setTurn}
+            userName={userName}
+            studyId={studyId}
+            studyResult={studyResult}
+            setStudyResult={setStudyResult}
+            setStudyMistake={setStudyMistake}
+            setStudySolution={setStudySolution}
           />
-          <FormControlLabel
-            value={Mode.REDO}
-            control={<Radio />}
-            label="Redo Mistakes"
-          />
-          <FormControlLabel
-            value={Mode.STUDY}
-            control={<Radio />}
-            label="Study"
-          />
-        </RadioGroup>
-      </FormControl>
+        </div>
+        <div className="homeButtons">
+          {movePlayed !== "" && <div>You played {movePlayed} in the game</div>}
+          <Button
+            variant="contained"
+            disabled={isDisabled()}
+            onClick={boardRef.current?.newPosition}
+          >
+            {nextMessage()}
+          </Button>
+          <Button
+            variant="contained"
+            disabled={isDisabledUrl()}
+            href={url}
+            onClick={() => console.log(url)}
+            target="_blank"
+          >
+            Analyze on Lichess
+          </Button>
+          <Button
+            variant="contained"
+            disabled={
+              !(result === Result.FAILURE || result === Result.PARTIAL_SUCCESS)
+            }
+            onClick={() => boardRef.current?.retry()}
+          >
+            Retry
+          </Button>
+          <Button
+            variant="contained"
+            disabled={showSolutionDisabled() || showSolution}
+            onClick={() => setShowSolution(true)}
+          >
+            Show Solution
+          </Button>
+        </div>
+        <div className="moveText">
+          {result !== Result.IN_PROGRESS && (
+            <div className="moveEvaluation">
+              <div>
+                Best move
+                {result !== Result.FAILURE
+                  ? " (" + solution.moves[0] + ")"
+                  : ""}
+                : {solution.evaluation}
+              </div>
+              <div>Your move: {evaluation.evaluation}</div>
+            </div>
+          )}
+          {showSolution && <div>{displaySolution()}</div>}
+        </div>
+      </div>
+      <div className="homeRight">
+        <div className="modes">
+          <FormControl>
+            <FormLabel>Mode</FormLabel>
+            <RadioGroup
+              value={mode}
+              onChange={(e) => {
+                setMode(parseInt((e.target as HTMLInputElement).value) as Mode);
+              }}
+            >
+              <FormControlLabel
+                value={Mode.PUZZLES}
+                control={<Radio />}
+                label="Puzzles"
+              />
+              <FormControlLabel
+                value={Mode.REDO}
+                control={<Radio />}
+                label="Redo Mistakes"
+              />
+              <FormControlLabel
+                value={Mode.STUDY}
+                control={<Radio />}
+                label="Study"
+              />
+            </RadioGroup>
+          </FormControl>
+        </div>
+        <div className="filters">{filters}</div>
+      </div>
       {/* {mode === Mode.STUDY && 
       <Checkbox checked={userGames} onChange={() => setUserGames(!userGames)} />} */}
     </div>

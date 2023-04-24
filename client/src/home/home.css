@@ -1,0 +1,44 @@
+.home {
+    display: flex;
+    flex-direction: row;
+    /* justify-content: space-around; */
+}
+
+.homeLeft {
+    flex: 1;
+}
+
+.homeCenter {
+}
+
+.homeRight {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    margin-left: 10px;
+    align-self: center;
+}
+
+.homeButtons {
+    display: flex;
+    justify-content: space-evenly;
+    margin-top: 10px;
+}
+
+.board {
+
+}
+
+.message {
+    margin-top: 20px;
+}
+
+.moveText {
+    display: flex;
+    flex-direction: row;
+    margin-top: 10px;
+}
+
+.moveEvaluation {
+    margin-right: auto;
+}

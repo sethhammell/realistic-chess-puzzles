@@ -31,6 +31,9 @@ export default function Home() {
   const [turn, setTurn] = useState<string>("");
   const [userName, setUserName] = useState<string>("usernbame1245");
   const [studyId, setStudyId] = useState<string>("f6UavjzS");
+  const [chapterFilter, setChapterFilter] = useState<string>(
+    "e4 e5 (schrantz v.)"
+  );
   const [studyResult, setStudyResult] = useState<StudyResult>(
     StudyResult.IN_PROGRESS
   );
@@ -157,6 +160,7 @@ export default function Home() {
             userName={userName}
             studyId={studyId}
             studyResult={studyResult}
+            chapterFilter={chapterFilter}
             setStudyResult={setStudyResult}
             setStudyMistake={setStudyMistake}
             setStudySolution={setStudySolution}

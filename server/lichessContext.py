@@ -83,7 +83,7 @@ async def fetchLichessGames(user, max):
     return redoFens
 
 
-def fetchLichessStudy(studyId):
+def fetchLichessStudy(studyId, chapterFilter=""):
     response = requests.get(
         "https://lichess.org/api/study/" + studyId + ".pgn?clocks=false&comments=false")
 
@@ -92,11 +92,13 @@ def fetchLichessStudy(studyId):
         pgn_text[i] += '\n'
 
     turn = 'w'
+    chapterName = ""
     turns = []
     chapters = []
     for l in pgn_text:
         s = l.split(' ')
-        if s[0] == '1.':
+        # print(chapterFilter, chapterName)
+        if s[0] == '1.' and (chapterFilter == "" or chapterName == chapterFilter):
             study_text = [m for m in s if m != '' and '*' not in m]
             newChapter = parseStudy([], study_text)
             bc = 1
@@ -112,6 +114,7 @@ def fetchLichessStudy(studyId):
                 turns.append(turn)
         elif s[0] == '[Event':
             turn = 'w' if len(s) % 2 == 0 else 'b'
+            chapterName = ' '.join(s)[len('[Event "Opendy: '):-3]
 
     chaptersUCI = []
 

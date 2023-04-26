@@ -28,6 +28,7 @@ interface BoardProps {
   userName: string;
   studyId: string;
   studyResult: StudyResult;
+  chapterFilter: string;
   setStudyResult: React.Dispatch<React.SetStateAction<StudyResult>>;
   setStudySolution: React.Dispatch<React.SetStateAction<string>>;
   setStudyMistake: React.Dispatch<React.SetStateAction<boolean>>;
@@ -49,6 +50,7 @@ const Board = forwardRef(
       userName,
       studyId,
       studyResult,
+      chapterFilter,
       setStudyResult,
       setStudySolution,
       setStudyMistake,
@@ -67,9 +69,15 @@ const Board = forwardRef(
           let newStudyData: StudyData[] = [];
           let currStudyData!: StudyData;
           if (!studyData.length) {
-            await fetch(`${apiLichess}/studyPgns?studyId=${studyId}`)
+            console.log(
+              `${apiLichess}/studyPgns?studyId=${studyId}&chapterFilter=${chapterFilter}`
+            );
+            await fetch(
+              `${apiLichess}/studyPgns?studyId=${studyId}&chapterFilter=${chapterFilter}`
+            )
               .then((res) => res.json())
               .then((data) => {
+                console.log(data);
                 setStudyData(data["studyPgns"]);
                 console.log(
                   Math.floor(Math.random() * (data["studyPgns"].length - 1)),
@@ -183,9 +191,11 @@ const Board = forwardRef(
     const [moveFilter, setMoveFilter] = useState<string>("1. e4 e6 2. d4 d5");
     const [studyMoveFilter, setStudyMoveFilter] = useState<MoveUci[]>([
       // { sourceSquare: "e2", targetSquare: "e4" },
+      // { sourceSquare: "d2", targetSquare: "d4" },
     ]);
     const [studyColorFilter, setStudyColorFilter] = useState<string | null>(
-      null // "b"
+      null
+      // "b"
     );
     const [ratingRange, setRatingRange] = useState<[number, number]>([0, 4000]);
     const [isNewPosition, setIsNewPosition] = useState<boolean>(true);
@@ -444,7 +454,7 @@ const Board = forwardRef(
           }
         } else if (studyPgnIndex === studyPgn.length) {
           setStudyResult(StudyResult.SUCCESS);
-          setUrl("https://lichess.org/analysis/" + game.fen());
+          setUrl("https://lichess.org/analysis/" + prevGame.fen());
         }
       }
     }

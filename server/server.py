@@ -39,7 +39,8 @@ async def randomLichessGame():
 @app.route("/api/lichess/studyPgns", methods=["GET"])
 async def studyPgns():
     studyId = request.args.get('studyId')
-    studyPgns = fetchLichessStudy(studyId)
+    chapterFilter = request.args.get('chapterFilter')
+    studyPgns = fetchLichessStudy(studyId, chapterFilter)
     return {"studyPgns": studyPgns}
 
 if __name__ == "__main__":

@@ -40,6 +40,9 @@ export default function Home() {
   const [studyMistake, setStudyMistake] = useState<boolean>(false);
   const [studySolution, setStudySolution] = useState<string>("");
   const [showSolution, setShowSolution] = useState<boolean>(false);
+  const [mistake, setMistake] = useState<boolean>(false);
+  const [correctPositions, setCorrectPositions] = useState<number>(0);
+  const [totalPositions, setTotalPositions] = useState<number>(0);
   const boardRef = useRef<BoardHandler>(null);
 
   useEffect(() => {
@@ -49,6 +52,21 @@ export default function Home() {
     }
   }, [mode]);
 
+  useEffect(() => {
+    if (mode === Mode.STUDY) {
+      switch (studyResult) {
+        case StudyResult.INCORRECT:
+          setMistake(true);
+          break;
+        case StudyResult.SUCCESS:
+          if (!mistake) setCorrectPositions(correctPositions + 1);
+          setTotalPositions(totalPositions + 1);
+          setMistake(false);
+          break;
+      }
+    }
+  }, [studyResult]);
+
   const moveMessage = () => {
     if (mode === Mode.STUDY) {
       switch (studyResult) {
@@ -57,8 +75,12 @@ export default function Home() {
         case StudyResult.IN_PROGRESS:
           return "What would you play in this position?";
         case StudyResult.INCORRECT:
+          // setMistake(true);
           return "Retry";
         case StudyResult.SUCCESS:
+          // if (!mistake) setCorrectPositions(correctPositions + 1);
+          // setTotalPositions(totalPositions + 1);
+          // setMistake(false);
           return "Congratulations! You completed this lesson.";
       }
     } else if (turn !== "") {
@@ -218,6 +240,11 @@ export default function Home() {
         </div>
       </div>
       <div className="homeRight">
+        <div className="accuracy">{`Accuracy: ${correctPositions} / ${totalPositions} = ${
+          (Number.isNaN(correctPositions / totalPositions)
+            ? 0
+            : Math.round((correctPositions / totalPositions) * 100)) + "%"
+        }`}</div>
         <div className="modes">
           <FormControl>
             <FormLabel>Mode</FormLabel>

@@ -350,9 +350,11 @@ const Board = forwardRef(
               }
             } else if (
               (turn === "b" &&
-                solution.evaluation >= (data["evaluation"] as number) - 100) ||
+                (solution.evaluation as number) >=
+                  (data["evaluation"] as number) - 100) ||
               (turn === "w" &&
-                solution.evaluation <= (data["evaluation"] as number) + 100)
+                (solution.evaluation as number) <=
+                  (data["evaluation"] as number) + 100)
             ) {
               setResult(Result.PARTIAL_SUCCESS);
             } else {

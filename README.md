@@ -1,4 +1,5 @@
 # realistic-chess-puzzles
+Python app that allows the user to train with realistic chess puzzles as well as study and retry mistakes
 
 ## Server Scripts
 

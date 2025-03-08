@@ -18,7 +18,7 @@ def parsePgns(pgn_text, includePlayers=False):
     whiteElo = 0
     curr = {}
     for l in pgn_text:
-        s = l.split(' ')
+        s = l.split(" ")
         match s[0]:
             case "[Site":
                 curr["url"] = s[1][1:-3]
@@ -29,33 +29,33 @@ def parsePgns(pgn_text, includePlayers=False):
                 if includePlayers:
                     curr["black"] = s[1][1:-3]
             case "[WhiteElo":
-                if s[1][1:-3] == '?':
+                if s[1][1:-3] == "?":
                     whiteElo = s[1][1:-3]
                 else:
                     whiteElo = int(s[1][1:-3])
             case "[BlackElo":
                 blackElo = s[1][1:-3]
-                if blackElo == '?' and whiteElo == '?':
-                    curr["avgElo"] = '?'
-                elif blackElo == '?':
+                if blackElo == "?" and whiteElo == "?":
+                    curr["avgElo"] = "?"
+                elif blackElo == "?":
                     curr["avgElo"] = whiteElo
-                elif whiteElo == '?':
+                elif whiteElo == "?":
                     curr["avgElo"] = blackElo
                 else:
                     curr["avgElo"] = (int(s[1][1:-3]) + whiteElo) / 2
             case "[Opening":
-                curr["opening"] = l[len("[Opening") + 2:-3]
+                curr["opening"] = l[len("[Opening") + 2 : -3]
             case "1.":
                 curr["moves"] = l
 
-                moves = curr["moves"].split(' ')
+                moves = curr["moves"].split(" ")
                 moves = moves[:-2]
                 lastChar = moves[-1][-1]
-                if lastChar == '.':
+                if lastChar == ".":
                     moves = moves[:-1]
                 totalMoves = round(len(moves) * 2 / 3)
 
-                if totalMoves > 8 and curr["avgElo"] != '?':
+                if totalMoves > 8 and curr["avgElo"] != "?":
                     pgns.append(curr)
                 # else:
                 #     print(totalMoves, curr["avgElo"] != '?', curr["url"], curr["avgElo"], curr["opening"], curr["moves"])
@@ -69,19 +69,19 @@ def parseStudy(base_pgn, study_text):
     bracDepth = 0
     variation = []
     for m in study_text:
-        if '(' in m:
+        if "(" in m:
             if bracDepth != 0:
                 variation.append(m)
-            bracDepth += m.count('(')
-        elif ')' in m:
-            bracDepth -= m.count(')')
+            bracDepth += m.count("(")
+        elif ")" in m:
+            bracDepth -= m.count(")")
             if bracDepth > 0:
                 variation.append(m)
             else:
                 variation.append(m[:-1])
                 chapter += parseStudy(deepcopy(current), variation)
                 variation = []
-        elif '.' not in m:
+        elif "." not in m:
             # print(current, variation, bracDepth, m)
             if bracDepth:
                 variation.append(m)
@@ -101,7 +101,7 @@ def loadDB():
     # for p in pgns:
     #     print(p["url"], p["avgElo"], p["opening"], p["moves"])
 
-    with open(config_path, 'r') as stream:
+    with open(config_path, "r") as stream:
         config = yaml.safe_load(stream)
 
     atlas_uri = config["atlas_uri"]
@@ -116,7 +116,7 @@ def loadDB():
 
 
 def clearDB():
-    with open(config_path, 'r') as stream:
+    with open(config_path, "r") as stream:
         config = yaml.safe_load(stream)
 
     atlas_uri = config["atlas_uri"]
@@ -131,7 +131,7 @@ def clearDB():
 
 
 def searchDB():
-    with open(config_path, 'r') as stream:
+    with open(config_path, "r") as stream:
         config = yaml.safe_load(stream)
 
     atlas_uri = config["atlas_uri"]
@@ -141,14 +141,18 @@ def searchDB():
     client = MongoClient(atlas_uri)
     database = client[db_name]
     cluster = database[cluster_name]
-    size = list(cluster.find({"moves": {"$regex": '1. e4 e6 '}}))
-    games = list(cluster.aggregate(
-        [{"$match": {"moves": {"$regex": '1. e4 e6 '}}}, {"$sample": {"size": 1}}]))
+    size = list(cluster.find({"moves": {"$regex": "1. e4 e6 "}}))
+    games = list(
+        cluster.aggregate(
+            [{"$match": {"moves": {"$regex": "1. e4 e6 "}}}, {"$sample": {"size": 1}}]
+        )
+    )
     print(len(size))
     for game in games:
         print(game)
     # for game in games:
     #     print(game["opening"])
+
 
 # loadDB()
 # clearDB()
